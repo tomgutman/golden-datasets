@@ -1,2 +1,3 @@
 # golden-datasets
-Download, extract and format to benchmark pipelines
+
+Download, extract and format golden datasets to benchmark pipelines
