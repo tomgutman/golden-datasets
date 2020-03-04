@@ -7,8 +7,10 @@ MKDIR_P = mkdir -p
 
 BEDTOOLS_URL = https://github.com/arq5x/bedtools2/releases/download/v2.29.2/bedtools.static.binary
 
-INSTALL_DIR := build
-INSTALL_DIR ?= $(shell read -s -p "Enter path to installation directory:" DIR && echo $$DIR)
+INSTALL_INPUT ?= $(shell read -p "Enter path to installation directory [build]:"$$'\n' && echo $$REPLY)
+DEFAULT_DIR := build	# Change this line if you want to change the default directory
+INSTALL_DIR := $(INSTALL_INPUT)
+INSTALL_DIR := $(or $(INSTALL_DIR),$(DEFAULT_DIR)) 	
 
 DATASETS_TSV = data/datasets.tsv
 DATASETS_URLS = $(shell awk 'NR>1 {print $$2}' $(DATASETS_TSV))
