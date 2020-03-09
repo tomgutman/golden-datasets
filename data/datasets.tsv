@@ -1,3 +1,13 @@
-dataset  uri
+dataset  url
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set1.normal.v2.bam
 dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set1.normal.v2.bam.bai
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set1.tumor.v2.bam
 dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set1.tumor.v2.bam.bai
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set2.normal.bam
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set2.normal.bam.bai
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set2.tumor.bam
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set2.tumor.bam.bai
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set3.normal.bam
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set3.normal.bam.bai
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set3.tumor.bam
+dream   https://storage.googleapis.com/public-dream-data/synthetic.challenge.set3.tumor.bam.bai
