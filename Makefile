@@ -35,6 +35,24 @@ URL_TEST_FILES		:= $(addsuffix .url, $(DATASETS_TEST_FILES))
 
 
 ###############################################################################
+# 								GOALS
+###############################################################################
+
+all: download
+
+download: $(DATASETS_FILES)
+
+test: $(DATASETS_TEST_FILES)
+
+clean:
+	$(RM_RF) $(URL_FILES)
+	$(RM_RF) $(URL_TEST_FILES)
+	$(RM_RF) $(DATASETS_TEST_FILES)
+	$(RM_RF) $(DATASETS_FILES) 
+	$(RM_RF) $(TEST_DIR)
+	$(RM_RF) $(DATASETS_DIRS)
+
+###############################################################################
 # 								DOWNLOAD
 ###############################################################################
 
@@ -63,22 +81,3 @@ bedtools:
 
 %.bam: %.fastq | bedtools
 	bedtools bamtofastq -i $@ -fq $(word 1, $<)
-
-
-###############################################################################
-# 								PHONY
-###############################################################################
-
-download: $(DATASETS_FILES)
-
-test: $(DATASETS_TEST_FILES)
-
-all:
-
-clean:
-	$(RM_RF) $(URL_FILES)
-	$(RM_RF) $(URL_TEST_FILES)
-	$(RM_RF) $(DATASETS_TEST_FILES)
-	$(RM_RF) $(DATASETS_FILES) 
-	$(RM_RF) $(TEST_DIR)
-	$(RM_RF) $(DATASETS_DIRS)
