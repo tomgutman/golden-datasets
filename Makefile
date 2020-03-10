@@ -12,7 +12,7 @@ DATA_DIR			= data
 DATASETS_TSV		= $(DATA_DIR)/datasets.tsv
 DATASETS_TEST_TSV	= $(DATA_DIR)/datasets.test.tsv
 
-DEFAULT_DIR			= $(DATA_DIR) # Change this line if you want to change the default directory
+DEFAULT_DIR			= /tmp # Change this line if you want to change the default directory
 #TODO: Dynamic set doesn't work correctly
 # INSTALL_INPUT	:= $(realpath $(shell read -p "Enter path to installation directory [build]:"$$'\n' && echo $$REPLY))
 INSTALL_DIR			?= $(or $(INSTALL_INPUT), $(strip $(DEFAULT_DIR)))
