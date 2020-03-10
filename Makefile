@@ -1,4 +1,5 @@
 .PHONY: all clean test download
+.INTERMEDIATE: .url
 
 SHELL	= /bin/bash
 WGET	= wget
@@ -40,21 +41,20 @@ URL_TEST_FILES		:= $(addsuffix .url, $(DATASETS_TEST_FILES))
 
 all: download
 
-download: $(DATASETS_FILES)
+download: $(DATASETS_TEST_FILES)
+#download: $(DATASETS_FILES)
 
 test: $(DATASETS_TEST_FILES)
 
 clean:
-	$(RM_RF) $(URL_FILES)
-	$(RM_RF) $(URL_TEST_FILES)
-	$(RM_RF) $(DATASETS_TEST_FILES)
-	$(RM_RF) $(DATASETS_FILES) 
-	$(RM_RF) $(TEST_DIR)
-	$(RM_RF) $(DATASETS_DIRS)
+	$(RM_RF) $(URL_FILES) $(URL_TEST_FILES)
+	$(RM_RF) $(DATASETS_TEST_FILES) $(DATASETS_FILES) 
+	$(RM_RF) $(TEST_DIR) $(DATASETS_DIRS)
 
 ###############################################################################
 # 								DOWNLOAD
 ###############################################################################
+.INTERMEDIATE: $(URL_TEST_FILES) $(URL_FILES)
 
 $(INSTALL_DIR)/%.url: 
 	$(MKDIR_P) $(@D) && awk '/$(notdir $(basename $*))/ {print $$2}' $< > $@
