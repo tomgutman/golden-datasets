@@ -1,5 +1,4 @@
 .PHONY: all clean test download
-#.ONESHELL:
 
 SHELL	= /bin/bash
 WGET	= wget
@@ -24,6 +23,7 @@ DATASETS_TAGS 		:= $(join $(addsuffix /,$(shell awk 'NR>1 {print $$1}' $(DATASET
 DATASETS_TEST_TAGS 	:= $(join $(addsuffix /,$(shell awk 'NR>1 {print $$1}' $(DATASETS_TEST_TSV))), $(notdir $(DATASETS_TEST_URLS)))
 DATASETS_FILES		:= $(addprefix $(INSTALL_DIR)/, $(DATASETS_TAGS))
 DATASETS_TEST_FILES	:= $(addprefix $(TEST_DIR)/, $(DATASETS_TEST_TAGS))
+DATASETS_DIRS		:= $(shell echo "$(dir $(DATASETS_FILES))" | tr ' ' '\n' | uniq)
 
 BAM_FILES			:= $(filter %.bam,$(DATASETS_FILES))
 BAI_FILES			:= $(filter %.bai,$(DATASETS_FILES))
@@ -81,4 +81,4 @@ clean:
 	$(RM_RF) $(DATASETS_TEST_FILES)
 	$(RM_RF) $(DATASETS_FILES) 
 	$(RM_RF) $(TEST_DIR)
-	$(RM_RF) $(shell uniq "$(suffix $(DATASETS_FILES))")
+	$(RM_RF) $(DATASETS_DIRS)
