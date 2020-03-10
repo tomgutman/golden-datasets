@@ -41,8 +41,7 @@ URL_TEST_FILES		:= $(addsuffix .url, $(DATASETS_TEST_FILES))
 
 all: download
 
-download: $(DATASETS_TEST_FILES)
-#download: $(DATASETS_FILES)
+download: $(DATASETS_FILES)
 
 test: $(DATASETS_TEST_FILES)
 
