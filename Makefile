@@ -11,10 +11,10 @@ DATA_DIR            = data
 DATASETS_TSV        = $(DATA_DIR)/datasets.tsv
 DATASETS_TEST_TSV   = $(DATA_DIR)/datasets.test.tsv
 
-DEFAULT_DIR         = /tmp # Change this line if you want to change the default directory
+DEFAULT_DIR         = $$HOME # Change this line if you want to change the default directory
 #TODO: Dynamic set doesn't work correctly
 # INSTALL_INPUT	:= $(realpath $(shell read -p "Enter path to installation directory [build]:"$$'\n' && echo $$REPLY))
-INSTALL_DIR         ?= $(or $(INSTALL_INPUT), $(strip $(DEFAULT_DIR)))
+INSTALL_DIR         ?= $(or $(INSTALL_INPUT), $(strip $(DEFAULT_DIR)))/golden-datasets
 TEST_DIR            := $(INSTALL_DIR)/test
 
 DATASETS_URLS       := $(shell awk 'NR>1 {print $$2}' $(DATASETS_TSV))
@@ -35,7 +35,7 @@ URL_TEST_FILES      := $(addsuffix .url, $(DATASETS_TEST_FILES))
 
 
 ###############################################################################
-# 								GOALS
+#                                  GOALS
 ###############################################################################
 
 all: download
@@ -50,7 +50,7 @@ clean:
 	$(RM_RF) $(TEST_DIR) $(DATASETS_DIRS)
 
 ###############################################################################
-# 								DOWNLOAD
+#                                 DOWNLOAD
 ###############################################################################
 .INTERMEDIATE: $(URL_TEST_FILES) $(URL_FILES)
 
@@ -77,5 +77,5 @@ bedtools:
 	@chmod a+x bedtools
 
 
-%.bam: %.fastq | bedtools
+%.fastq: %.bam bedtools
 	bedtools bamtofastq -i $@ -fq $(word 1, $<)
