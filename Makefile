@@ -59,13 +59,13 @@ clean:
 	$(MKDIR_P) $(@D)
 
 %.url: 
-	awk '/$(notdir $(basename $*))/ {print $$2}' $< > $@
+	awk '/$(notdir $*)/ {print $$2}' $< > $@
 
 $(URL_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
 $(URL_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
 
 
-$(INSTALL_DIR)/%.bam $(INSTALL_DIR)/%.bai:
+$(INSTALL_DIR)/%.bam $(INSTALL_DIR)/%.bai $(INSTALL_DIR)/%.bz2 $(INSTALL_DIR)/%.fai $(INSTALL_DIR)/%.fastq:
 	$(WGET) -O $@ $(shell cat $(word 1, $|))
 
 $(DATASETS_TEST_FILES): $(INSTALL_DIR)/test/%: | $(INSTALL_DIR)/test/%.url

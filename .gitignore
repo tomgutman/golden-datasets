@@ -210,3 +210,9 @@ dmypy.json
 !.vscode/extensions.json
 *.code-workspace
 
+
+.idea/
+
+data/test/dream/hg19/
+
+data/test/dream/raw/
