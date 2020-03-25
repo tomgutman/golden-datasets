@@ -2,11 +2,14 @@
 
 SHELL   = /bin/bash
 WGET    = wget
+CONDA   = conda
 MKDIR_P = mkdir -p
 RM_RF   = rm -rf
 
+CONDA_URL           = https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
 BEDTOOLS_URL        = https://github.com/arq5x/bedtools2/releases/download/v2.29.2/bedtools.static.binary
 DATA_DIR            = data
+CONDA_ENV           = env
 DATASETS_TSV        = $(DATA_DIR)/datasets.tsv
 DATASETS_TEST_TSV   = $(DATA_DIR)/datasets.test.tsv
 
@@ -16,8 +19,8 @@ DEFAULT_DIR         = $(DATA_DIR) # Change this line if you want to change the d
 INSTALL_DIR         ?= $(or $(INSTALL_INPUT), $(strip $(DEFAULT_DIR)))
 TEST_DIR            := $(INSTALL_DIR)/test
 
-DATASETS_URLS       := $(shell awk 'NR>1 {print $$2}' $(DATASETS_TSV))
-DATASETS_TEST_URLS  := $(shell awk 'NR>1 {print $$2}' $(DATASETS_TEST_TSV))
+DATASETS_URLS       := $(shell awk 'NR<=1{next} $$2 !~ /null/{print $$2}' $(DATASETS_TSV))
+DATASETS_TEST_URLS  := $(shell awk 'NR<=1{next} $$2 !~ /null/{print $$2}' $(DATASETS_TEST_TSV))
 DATASETS_TAGS       := $(join $(addsuffix /,$(shell awk 'NR>1 {print $$1}' $(DATASETS_TSV))), $(notdir $(DATASETS_URLS)))
 DATASETS_TEST_TAGS  := $(join $(addsuffix /,$(shell awk 'NR>1 {print $$1}' $(DATASETS_TEST_TSV))), $(notdir $(DATASETS_TEST_URLS)))
 DATASETS_FILES      := $(addprefix $(INSTALL_DIR)/, $(DATASETS_TAGS))
@@ -31,6 +34,11 @@ URL_TEST_FILES      := $(addsuffix .url, $(DATASETS_TEST_FILES))
 
 BAM_FILES           := $(wildcard $(INSTALL_DIR)/*.bam)
 BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.fastq)
+
+
+ ifeq (, $(shell which $(CONDA)))
+ $(error "No $(CONDA) in $PATH, check miniconda website to install it ($(CONDA_URL))")
+ endif
 
 ###############################################################################
 #                                  GOALS
@@ -48,6 +56,13 @@ clean:
 	$(RM_RF) $(URL_FILES) $(URL_TEST_FILES)
 	$(RM_RF) $(DATASETS_TEST_FILES) $(DATASETS_FILES) 
 	$(RM_RF) $(TEST_DIR) $(DATASETS_DIRS)
+
+###############################################################################
+#                                 CONDA
+###############################################################################
+
+$(CONDA_ENV):
+	$(CONDA) create -p $(@D) -y
 
 ###############################################################################
 #                                 DOWNLOAD
