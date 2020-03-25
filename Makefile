@@ -19,19 +19,23 @@ DEFAULT_DIR         = $(DATA_DIR) # Change this line if you want to change the d
 INSTALL_DIR         ?= $(or $(INSTALL_INPUT), $(strip $(DEFAULT_DIR)))
 TEST_DIR            := $(INSTALL_DIR)/test
 
-DATASETS_URLS       := $(shell awk 'NR<=1{next} $$2 !~ /null/{print $$2}' $(DATASETS_TSV))
-DATASETS_TEST_URLS  := $(shell awk 'NR<=1{next} $$2 !~ /null/{print $$2}' $(DATASETS_TEST_TSV))
-DATASETS_TAGS       := $(join $(addsuffix /,$(shell awk 'NR>1 {print $$1}' $(DATASETS_TSV))), $(notdir $(DATASETS_URLS)))
-DATASETS_TEST_TAGS  := $(join $(addsuffix /,$(shell awk 'NR>1 {print $$1}' $(DATASETS_TEST_TSV))), $(notdir $(DATASETS_TEST_URLS)))
-DATASETS_FILES      := $(addprefix $(INSTALL_DIR)/, $(DATASETS_TAGS))
-DATASETS_TEST_FILES := $(addprefix $(TEST_DIR)/, $(DATASETS_TEST_TAGS))
+URL_FILES             := $(shell awk 'NR<=1{next} $$3 !~ /null/{printf "$(INSTALL_DIR)/%s/%s.%s\n", $$1, $$2, "url"}' $(DATASETS_TSV))
+URL_TEST_FILES        := $(shell awk 'NR<=1{next} $$3 !~ /null/{printf "$(TEST_DIR)/%s/%s.%s\n", $$1, $$2, "url"}' $(DATASETS_TEST_TSV))
+SYNIDS_FILES          := $(shell awk 'NR<=1{next} $$4 !~ /null/{printf "$(INSTALL_DIR)/%s/%s.%s\n", $$1, $$2, "synid"}' $(DATASETS_TSV))
+SYNIDS_TEST_FILES     := $(shell awk 'NR<=1{next} $$4 !~ /null/{printf "$(TEST_DIR)/%s/%s.%s\n", $$1, $$2, "synid"}' $(DATASETS_TEST_TSV))
+
+DATASETS_FROM_URL_FILES         :=  $(URL_FILES:.url=)
+DATASETS_FROM_URL_TEST_FILES    :=  $(URL_TEST_FILES:.url=)
+DATASETS_FROM_SYNID_FILES       :=  $(SYNIDS_FILES:.synid=)
+DATASETS_FROM_SYNID_TEST_FILES  :=  $(SYNIDS_TEST_FILES:.synid=)
+
+DATASETS_FILES        := $(DATASETS_FROM_URL_FILES) $(DATASETS_FROM_SYNID_FILES)
+DATASETS_TEST_FILES   := $(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_SYNID_TEST_FILES)
 
 DATASETS_DIRS       := $(shell echo "$(dir $(DATASETS_FILES))" | tr ' ' '\n' | uniq)
 DATASETS_TEST_DIRS  := $(shell echo "$(dir $(DATASETS_TEST_FILES))" | tr ' ' '\n' | uniq)
 
-URL_FILES           := $(addsuffix .url, $(DATASETS_FILES))
-URL_TEST_FILES      := $(addsuffix .url, $(DATASETS_TEST_FILES))
-
+$(info $(URL_TEST_FILES))
 BAM_FILES           := $(wildcard $(INSTALL_DIR)/*.bam)
 BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.fastq)
 
@@ -67,24 +71,31 @@ $(CONDA_ENV):
 ###############################################################################
 #                                 DOWNLOAD
 ###############################################################################
-.INTERMEDIATE: $(URL_TEST_FILES) $(URL_FILES)
+.INTERMEDIATE: $(URL_TEST_FILES) $(URL_FILES) $(SYNIDS_FILES) $(SYNIDS_TEST_FILES)
 
 
 %/:
 	$(MKDIR_P) $(@D)
 
+%.synid:
+	awk '/$(notdir $*)/ {print $$4}' $< > $@
+
 %.url: 
-	awk '/$(notdir $*)/ {print $$2}' $< > $@
+	awk '/$(notdir $*)/ {print $$3}' $< > $@
 
 $(URL_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
+$(SYNIDS_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
 $(URL_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
+$(SYNIDS_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
 
 
 $(INSTALL_DIR)/%.bam $(INSTALL_DIR)/%.bai $(INSTALL_DIR)/%.bz2 $(INSTALL_DIR)/%.fai $(INSTALL_DIR)/%.fastq:
 	$(WGET) -O $@ $(shell cat $(word 1, $|))
 
-$(DATASETS_TEST_FILES): $(INSTALL_DIR)/test/%: | $(INSTALL_DIR)/test/%.url
-$(DATASETS_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.url
+$(DATASETS_FROM_URL_TEST_FILES): $(INSTALL_DIR)/test/%: | $(INSTALL_DIR)/test/%.url
+$(DATASETS_FROM_SYNID_FILES): $(INSTALL_DIR)/test/%: | $(INSTALL_DIR)/test/%.synid
+$(DATASETS_FROM_URL_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.url
+$(DATASETS_FROM_SYNID_TEST_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.synid
 
 # TODO: Check file hash
 
