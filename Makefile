@@ -1,4 +1,4 @@
-.PHONY: all clean test download bam2fastq
+.PHONY: all clean test download bam2fastq compress
 .ONESHELL:
 
 SHELL   = /bin/bash
@@ -60,7 +60,9 @@ download: $(DATASETS_FILES)
 
 test: $(DATASETS_TEST_FILES)
 
-bam2fastq: $(BAM2FASTQ_FILES)
+bam2fastqgz: $(BAM2FASTQ_FILES)
+
+compress: $(FASTQ2GZ_FILES)
 
 clean:
 	$(RM_RF) $(URL_FILES) $(URL_TEST_FILES)
