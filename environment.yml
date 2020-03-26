@@ -1,0 +1,9 @@
+name: golden_datasets
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - gatk4=4.1.2.0=1
+  - synapseclient=2.0.0=py_0
+  - which=2.21=h516909a_0
