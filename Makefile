@@ -1,4 +1,5 @@
 .PHONY: all clean test download bam2fastq
+.ONESHELL:
 
 SHELL   = /bin/bash
 WGET    = wget
@@ -6,10 +7,13 @@ CONDA   = conda
 MKDIR_P = mkdir -p
 RM_RF   = rm -rf
 
+CONDA_BASE          = $(shell conda info --base)
+CONDA_ENV           = $(realpath env)
 CONDA_URL           = https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
+CONDA_ACTIVATE      = source $(CONDA_BASE)/etc/profile.d/conda.sh ; conda activate ; conda activate
 BEDTOOLS_URL        = https://github.com/arq5x/bedtools2/releases/download/v2.29.2/bedtools.static.binary
+
 DATA_DIR            = data
-CONDA_ENV           = env
 DATASETS_TSV        = $(DATA_DIR)/datasets.tsv
 DATASETS_TEST_TSV   = $(DATA_DIR)/datasets.test.tsv
 
@@ -65,8 +69,9 @@ clean:
 #                                 CONDA
 ###############################################################################
 
-$(CONDA_ENV):
-	$(CONDA) create -p $(@D) -y
+# Create the environment, install and initialize all the tools required
+$(CONDA_ENV): environment.yml
+	$(CONDA) env create -p $(@D) --file $<
 
 ###############################################################################
 #                                 DOWNLOAD
