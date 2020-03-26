@@ -42,12 +42,13 @@ DATASETS_DIRS       := $(shell echo "$(dir $(DATASETS_FILES))" | tr ' ' '\n' | u
 DATASETS_TEST_DIRS  := $(shell echo "$(dir $(DATASETS_TEST_FILES))" | tr ' ' '\n' | uniq)
 
 BAM_FILES           := $(wildcard $(INSTALL_DIR)/*.bam)
-BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.fastq)
-
+BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.fastq) $(BAM_FILES:.bam=.fastq)
+FASTQ2GZ_FILES      := $(BAM2FASTQ_FILES:.fastq=.fastq.gz)
 
  ifeq (, $(shell which $(CONDA)))
  $(error "No $(CONDA) in $PATH, check miniconda website to install it ($(CONDA_URL))")
  endif
+
 
 ###############################################################################
 #                                  GOALS
@@ -66,6 +67,7 @@ clean:
 	$(RM_RF) $(DATASETS_TEST_FILES) $(DATASETS_FILES) 
 	$(RM_RF) $(TEST_DIR) $(DATASETS_DIRS)
 
+
 ###############################################################################
 #                                 CONDA
 ###############################################################################
@@ -74,11 +76,12 @@ clean:
 $(CONDA_ENV): environment.yml
 	$(CONDA) env create -p $(@D) --file $<
 
+
 ###############################################################################
 #                                 DOWNLOAD
 ###############################################################################
 .INTERMEDIATE: $(URL_TEST_FILES) $(URL_FILES) $(SYNIDS_FILES) $(SYNIDS_TEST_FILES)
-
+# TODO: Check file hash
 
 %/:
 	$(MKDIR_P) $(@D)
@@ -107,20 +110,16 @@ $(DATASETS_FROM_SYNID_FILES) $(DATASETS_FROM_SYNID_TEST_FILES): $(INSTALL_DIR)/%
 	syn_file=$$(synapse get --downloadLocation $(@D) $(shell cat $(word 1, $|)) | awk 'BEGIN {FS=" "} /Downloaded file/ {print $$3}')
 	mv $(@D)/$${syn_file} $@
 
-# TODO: Check file hash
-
-
 
 ###############################################################################
 #                                 bam2fastq
 ###############################################################################
 
+# bedtools bamtofastq -i $< -fq $(word 1, $@)
+%.r1.fastq %.r2.fastq: %.bam | $(CONDA_ENV)
+	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	gatk SamToFastq --INPUT=$< --FASTQ=$*.r1.fastq --SECOND_END_FASTQ=$*.r2.fastq
 
-bedtools:
-	@echo "Install bedtools requirement"
-	@wget $(BEDTOOLS_URL);
-	@mv bedtools.static.binary bedtools;
-	@chmod a+x bedtools
-
-%.fastq: %.bam $(CONDA_ENV)
-	bedtools bamtofastq -i $< -fq $(word 1, $@)
+%.fastq.gz: %.fastq
+	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	pigz $<
