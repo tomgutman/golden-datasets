@@ -216,3 +216,4 @@ dmypy.json
 data/test/dream/hg19/
 
 data/test/dream/raw/
+/data/test/
