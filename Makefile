@@ -12,6 +12,7 @@ CONDA_ENV           = $(realpath env)
 CONDA_URL           = https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
 CONDA_ACTIVATE      = source $(CONDA_BASE)/etc/profile.d/conda.sh ; conda activate ; conda activate
 
+SYNAPSE_SESSION     = $(HOME)/.synapseSession
 BEDTOOLS_URL        = https://github.com/arq5x/bedtools2/releases/download/v2.29.2/bedtools.static.binary
 
 DATA_DIR            = data
@@ -91,15 +92,20 @@ $(CONDA_ENV): environment.yml
 $(URL_TEST_FILES) $(SYNIDS_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
 $(URL_FILES) $(SYNIDS_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
 
+# If synapse credentials not saved before, login and save them with the OS keyring tool
+$(HOME)/.synapseSession: | $(CONDA_ENV)
+	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	synapse login --rememberMe
 
 # Download file from synapse if there is an URL in the tsv file
 $(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_URL_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.url
 	$(WGET) -O $@ $(shell cat $(word 1, $|))
 
-$(DATASETS_FROM_URL_TEST_FILES): $(INSTALL_DIR)/test/%: | $(INSTALL_DIR)/test/%.url
-$(DATASETS_FROM_SYNID_FILES): $(INSTALL_DIR)/test/%: | $(INSTALL_DIR)/test/%.synid
-$(DATASETS_FROM_URL_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.url
-$(DATASETS_FROM_SYNID_TEST_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.synid
+# Download file from synapse if there is a synapse ID in the tsv file
+$(DATASETS_FROM_SYNID_FILES) $(DATASETS_FROM_SYNID_TEST_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.synid $(SYNAPSE_SESSION)
+	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	syn_file=$$(synapse get --downloadLocation $(@D) $(shell cat $(word 1, $|)) | awk 'BEGIN {FS=" "} /Downloaded file/ {print $$3}')
+	mv $(@D)/$${syn_file} $@
 
 # TODO: Check file hash
 
