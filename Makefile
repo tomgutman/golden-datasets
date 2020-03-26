@@ -11,6 +11,7 @@ CONDA_BASE          = $(shell conda info --base)
 CONDA_ENV           = $(realpath env)
 CONDA_URL           = https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
 CONDA_ACTIVATE      = source $(CONDA_BASE)/etc/profile.d/conda.sh ; conda activate ; conda activate
+
 BEDTOOLS_URL        = https://github.com/arq5x/bedtools2/releases/download/v2.29.2/bedtools.static.binary
 
 DATA_DIR            = data
@@ -39,7 +40,6 @@ DATASETS_TEST_FILES   := $(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_SYNID_T
 DATASETS_DIRS       := $(shell echo "$(dir $(DATASETS_FILES))" | tr ' ' '\n' | uniq)
 DATASETS_TEST_DIRS  := $(shell echo "$(dir $(DATASETS_TEST_FILES))" | tr ' ' '\n' | uniq)
 
-$(info $(URL_TEST_FILES))
 BAM_FILES           := $(wildcard $(INSTALL_DIR)/*.bam)
 BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.fastq)
 
@@ -88,13 +88,12 @@ $(CONDA_ENV): environment.yml
 %.url: 
 	awk '/$(notdir $*)/ {print $$3}' $< > $@
 
-$(URL_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
-$(SYNIDS_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
-$(URL_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
-$(SYNIDS_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
+$(URL_TEST_FILES) $(SYNIDS_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
+$(URL_FILES) $(SYNIDS_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
 
 
-$(INSTALL_DIR)/%.bam $(INSTALL_DIR)/%.bai $(INSTALL_DIR)/%.bz2 $(INSTALL_DIR)/%.fai $(INSTALL_DIR)/%.fastq:
+# Download file from synapse if there is an URL in the tsv file
+$(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_URL_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.url
 	$(WGET) -O $@ $(shell cat $(word 1, $|))
 
 $(DATASETS_FROM_URL_TEST_FILES): $(INSTALL_DIR)/test/%: | $(INSTALL_DIR)/test/%.url
@@ -117,6 +116,5 @@ bedtools:
 	@mv bedtools.static.binary bedtools;
 	@chmod a+x bedtools
 
-
-%.fastq: %.bam bedtools
+%.fastq: %.bam $(CONDA_ENV)
 	bedtools bamtofastq -i $< -fq $(word 1, $@)
