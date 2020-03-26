@@ -93,7 +93,7 @@ $(URL_TEST_FILES) $(SYNIDS_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_D
 $(URL_FILES) $(SYNIDS_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
 
 # If synapse credentials not saved before, login and save them with the OS keyring tool
-$(HOME)/.synapseSession: | $(CONDA_ENV)
+$(SYNAPSE_SESSION): | $(CONDA_ENV)
 	$(CONDA_ACTIVATE) $(CONDA_ENV)
 	synapse login --rememberMe
 
