@@ -1,4 +1,5 @@
 dataset	fileName	url	synapseId
+dream/raw	synthetic.challenge.set1.normal.v2.bam	https://storage.googleapis.com/public-dream-data/synthetic.challenge.set1.normal.v2.bam	null
 dream/raw	synthetic.challenge.set1.normal.v2.bam.bai	https://storage.googleapis.com/public-dream-data/synthetic.challenge.set1.normal.v2.bam.bai	null
 dream/raw	synthetic.challenge.set1.tumor.v2.bam.bai	https://storage.googleapis.com/public-dream-data/synthetic.challenge.set1.tumor.v2.bam.bai	null
 dream/raw	synthetic.challenge.set2.normal.bam.bai	https://storage.googleapis.com/public-dream-data/synthetic.challenge.set2.normal.bam.bai	null
