@@ -8,7 +8,7 @@ MKDIR_P = mkdir -p
 RM_RF   = rm -rf
 
 CONDA_BASE          = $(shell conda info --base)
-CONDA_ENV           = $(realpath env)
+CONDA_ENV           = $(addsuffix /env, $(realpath .))
 CONDA_URL           = https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
 CONDA_ACTIVATE      = source $(CONDA_BASE)/etc/profile.d/conda.sh ; conda activate ; conda activate
 
@@ -76,7 +76,7 @@ clean:
 
 # Create the environment, install and initialize all the tools required
 $(CONDA_ENV): environment.yml
-	$(CONDA) env create -p $(@D) --file $<
+	$(CONDA) env create -p $@ --file $<
 
 
 ###############################################################################
