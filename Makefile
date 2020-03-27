@@ -60,7 +60,7 @@ download: $(DATASETS_FILES)
 
 test: $(DATASETS_TEST_FILES)
 
-bam2fastqgz: $(BAM2FASTQ_FILES)
+bam2fastq: $(BAM2FASTQ_FILES)
 
 compress: $(FASTQ2GZ_FILES)
 
