@@ -41,13 +41,13 @@ DATASETS_TEST_FILES   := $(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_SYNID_T
 DATASETS_DIRS       := $(shell echo "$(dir $(DATASETS_FILES))" | tr ' ' '\n' | uniq)
 DATASETS_TEST_DIRS  := $(shell echo "$(dir $(DATASETS_TEST_FILES))" | tr ' ' '\n' | uniq)
 
-BAM_FILES           := $(wildcard $(INSTALL_DIR)/*.bam)
-BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.fastq) $(BAM_FILES:.bam=.fastq)
+BAM_FILES           := $(shell find $(INSTALL_DIR)/ -type f -name '*.bam')
+BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.r1.fastq) $(BAM_FILES:.bam=.r2.fastq)
 FASTQ2GZ_FILES      := $(BAM2FASTQ_FILES:.fastq=.fastq.gz)
 
- ifeq (, $(shell which $(CONDA)))
- $(error "No $(CONDA) in $PATH, check miniconda website to install it ($(CONDA_URL))")
- endif
+ifeq (, $(shell which $(CONDA)))
+$(error "No $(CONDA) in $PATH, check miniconda website to install it ($(CONDA_URL))")
+endif
 
 
 ###############################################################################
