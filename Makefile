@@ -25,18 +25,26 @@ DEFAULT_DIR         = $(DATA_DIR) # Change this line if you want to change the d
 INSTALL_DIR         ?= $(or $(INSTALL_INPUT), $(strip $(DEFAULT_DIR)))
 TEST_DIR            := $(INSTALL_DIR)/test
 
-URL_FILES             := $(shell awk 'NR<=1{next} $$3 !~ /null/{printf "$(INSTALL_DIR)/%s/%s.%s\n", $$1, $$2, "url"}' $(DATASETS_TSV))
-URL_TEST_FILES        := $(shell awk 'NR<=1{next} $$3 !~ /null/{printf "$(TEST_DIR)/%s/%s.%s\n", $$1, $$2, "url"}' $(DATASETS_TEST_TSV))
-SYNIDS_FILES          := $(shell awk 'NR<=1{next} $$4 !~ /null/{printf "$(INSTALL_DIR)/%s/%s.%s\n", $$1, $$2, "synid"}' $(DATASETS_TSV))
-SYNIDS_TEST_FILES     := $(shell awk 'NR<=1{next} $$4 !~ /null/{printf "$(TEST_DIR)/%s/%s.%s\n", $$1, $$2, "synid"}' $(DATASETS_TEST_TSV))
+EXTRACT_TSV_CMD     := awk 'BEGIN {ext=""} NR<=1 {next} {if($$5 !~ /null/) ext="gsutil"; else if ($$4 !~ /null/) ext="synid"; else ext="url"; printf "%s/%s.%s\n", $$1, $$2, ext}'
+
+DLIDS_FILES           := $(add prefix $(INSTALL_DIR)/, $(shell $(EXTRACT_TSV_CMD) $(DATASETS_TSV)))
+DLIDS_TEST_FILES      := $(addprefix $(TEST_DIR)/, $(shell $(EXTRACT_TSV_CMD) $(DATASETS_TEST_TSV)))
+URL_FILES             := $(filter %.url, $(DLIDS_FILES))
+URL_TEST_FILES        := $(filter %.url, $(DLIDS_TEST_FILES))
+SYNIDS_FILES          := $(filter %.synid, $(DLIDS_FILES))
+SYNIDS_TEST_FILES     := $(filter %.synid, $(DLIDS_TEST_FILES))
+GSUTIL_FILES          := $(filter %.gsutil, $(DLIDS_FILES))
+GSUTIL_TEST_FILES     := $(filter %.gsutil, $(DLIDS_TEST_FILES))
 
 DATASETS_FROM_URL_FILES         :=  $(URL_FILES:.url=)
 DATASETS_FROM_URL_TEST_FILES    :=  $(URL_TEST_FILES:.url=)
+DATASETS_FROM_GSUTIL_FILES      :=  $(GSUTIL_FILES:.gsutil=)
+DATASETS_FROM_GSUTIL_TEST_FILES :=  $(GSUTIL_TEST_FILES:.gsutil=)
 DATASETS_FROM_SYNID_FILES       :=  $(SYNIDS_FILES:.synid=)
 DATASETS_FROM_SYNID_TEST_FILES  :=  $(SYNIDS_TEST_FILES:.synid=)
 
-DATASETS_FILES        := $(DATASETS_FROM_URL_FILES) $(DATASETS_FROM_SYNID_FILES)
-DATASETS_TEST_FILES   := $(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_SYNID_TEST_FILES)
+DATASETS_FILES        := $(DATASETS_FROM_URL_FILES) $(DATASETS_FROM_SYNID_FILES) $(DATASETS_FROM_GSUTIL_FILES)
+DATASETS_TEST_FILES   := $(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_SYNID_TEST_FILES) $(DATASETS_FROM_GSUTIL_TEST_FILES)
 
 DATASETS_DIRS       := $(shell echo "$(dir $(DATASETS_FILES))" | tr ' ' '\n' | uniq)
 DATASETS_TEST_DIRS  := $(shell echo "$(dir $(DATASETS_TEST_FILES))" | tr ' ' '\n' | uniq)
@@ -83,20 +91,23 @@ $(CONDA_ENV): environment.yml
 ###############################################################################
 #                                 DOWNLOAD
 ###############################################################################
-.INTERMEDIATE: $(URL_TEST_FILES) $(URL_FILES) $(SYNIDS_FILES) $(SYNIDS_TEST_FILES)
+.INTERMEDIATE: $(DLIDS_TEST_FILES) $(DLIDS_FILES)
 # TODO: Check file hash
 
 %/:
 	$(MKDIR_P) $(@D)
 
 %.synid:
-	awk '/$(notdir $*)/ {print $$4}' $< > $@
+	awk '$$2 ~ /^$(notdir $*)$/ {print $$4}' $< > $@
+
+%.gsutil:
+	awk '$$2 ~ /^$(notdir $*)$$/ {print $$5}' $< > $@
 
 %.url: 
-	awk '/$(notdir $*)/ {print $$3}' $< > $@
+	awk '$$2 ~ /^$(notdir $*)$$/ {print $$3}' $< > $@
 
-$(URL_TEST_FILES) $(SYNIDS_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
-$(URL_FILES) $(SYNIDS_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
+$(DLIDS_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
+$(DLIDS_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
 
 # If synapse credentials not saved before, login and save them with the OS keyring tool
 $(SYNAPSE_SESSION): | $(CONDA_ENV)
@@ -104,15 +115,18 @@ $(SYNAPSE_SESSION): | $(CONDA_ENV)
 	synapse login --rememberMe
 
 # Download file from synapse if there is an URL in the tsv file
-$(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_URL_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.url
+# TODO: use rsync instead
+$(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_URL_FILES): %: | %.url
 	$(WGET) -O $@ $(shell cat $(word 1, $|))
 
 # Download file from synapse if there is a synapse ID in the tsv file
-$(DATASETS_FROM_SYNID_FILES) $(DATASETS_FROM_SYNID_TEST_FILES): $(INSTALL_DIR)/%: | $(INSTALL_DIR)/%.synid $(SYNAPSE_SESSION)
+$(DATASETS_FROM_SYNID_FILES) $(DATASETS_FROM_SYNID_TEST_FILES): %: | %.synid $(SYNAPSE_SESSION)
 	$(CONDA_ACTIVATE) $(CONDA_ENV)
-	syn_file=$$(synapse get --downloadLocation $(@D) $(shell cat $(word 1, $|)) | awk 'BEGIN {FS=" "} /Downloaded file/ {print $$3}')
+	syn_file=$$(synapse get --downloadLocation $(@D) $(shell cat $(word 1, $|)) | awk 'BEGIN {FS=" "} /Downloaded file/ {print $$3}') && \
 	mv $(@D)/$${syn_file} $@
 
+$(DATASETS_FROM_GSUTIL_FILES) $(DATASETS_FROM_GSUTIL_TEST_FILES): %: | %.gsutil $(CONDA_ENV)
+	gsutil cp  $(shell cat $(word 1, $|)) $(@D)
 
 ###############################################################################
 #                                 bam2fastq
