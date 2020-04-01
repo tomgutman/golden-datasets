@@ -76,7 +76,7 @@ clean:
 
 # Create the environment, install and initialize all the tools required
 $(CONDA_ENV): environment.yml
-	rm -rf $@
+	rm -rf $@ $(SYNAPSE_SESSION)
 	$(CONDA) env create -p $@ --file $<
 
 
