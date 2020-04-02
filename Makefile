@@ -98,7 +98,7 @@ $(CONDA_ENV): environment.yml
 	$(MKDIR_P) $(@D)
 
 %.synid:
-	awk '$$2 ~ /^$(notdir $*)$/ {print $$4}' $< > $@
+	awk '$$2 ~ /^$(notdir $*)$$/ {print $$4}' $< > $@
 
 %.gsutil:
 	awk '$$2 ~ /^$(notdir $*)$$/ {print $$5}' $< > $@
