@@ -1,4 +1,4 @@
-.PHONY: all clean test download bam2fastq compress
+.PHONY: all clean download_test download bam2fastq compress check_test
 .ONESHELL:
 
 SHELL   = /bin/bash
@@ -53,10 +53,14 @@ BAM_FILES           := $(shell find $(INSTALL_DIR)/ -type f -name '*.bam')
 BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.r1.fastq) $(BAM_FILES:.bam=.r2.fastq)
 FASTQ2GZ_FILES      := $(BAM2FASTQ_FILES:.fastq=.fastq.gz)
 
+CRC32C_FILES        := $(GSUTIL_FILES:.gsutil=.crc32c)
+CRC32C_TEST_FILES   := $(GSUTIL_TEST_FILES:.gsutil=.crc32c)
+MD5_FILES           := $(GSUTIL_FILES:.gsutil=.md5) $(SYNIDS_FILES:.synid=.md5) $(URL_FILES:.url=.md5)
+MD5_TEST_FILES      := $(GSUTIL_TEST_FILES:.gsutil=.md5) $(SYNIDS_TEST_FILES:.synid=.md5) $(URL_TEST_FILES:.url=.md5)
+
 ifeq (, $(shell which $(CONDA)))
 $(error "No $(CONDA) in $PATH, check miniconda website to install it ($(CONDA_URL))")
 endif
-
 
 ###############################################################################
 #                                  GOALS
@@ -66,11 +70,15 @@ all: download
 
 download: $(DATASETS_FILES)
 
-test: $(DATASETS_TEST_FILES)
+download_test: $(DATASETS_TEST_FILES)
 
 bam2fastq: $(BAM2FASTQ_FILES)
 
 compress: $(FASTQ2GZ_FILES)
+
+check: $(CRC32C_FILES) $(MD5_FILES)
+
+check_test: $(CRC32C_TEST_FILES) $(MD5_TEST_FILES)
 
 clean:
 	$(RM_RF) $(URL_FILES) $(URL_TEST_FILES)
@@ -137,6 +145,30 @@ $(DATASETS_FROM_GSUTIL_FILES) $(DATASETS_FROM_GSUTIL_TEST_FILES): %: | %.gsutil 
 	$(CONDA_ACTIVATE) $(CONDA_ENV)
 	gatk SamToFastq --INPUT=$< --FASTQ=$*.r1.fastq --SECOND_END_FASTQ=$*.r2.fastq
 
-%.fastq.gz: %.fastq
+%.fastq.gz: %.fastq | $(CONDA_ENV)
 	$(CONDA_ACTIVATE) $(CONDA_ENV)
 	pigz $<
+
+
+###############################################################################
+#                                 check
+###############################################################################
+.INTERMEDIATE: $(CRC32C_FILES) $(MD5_FILES) $(CRC32C_TEST_FILES) $(MD5_TEST_FILES)
+
+# Get file Hash from TSV or trhough an API like gsutil + URI
+
+# For Gsutil generate crc32c hash in hexadecimal format
+%.crc32c: %.gsutil | $(CONDA_ENV)
+	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	gsutil hash -h $(shell cat $(word 1, $<)) | awk '/Hash \(crc32c\)/{print $$3}' > $@
+
+%.md5: %.url | $(CONDA_ENV)
+	@echo 'find another way to get md5. Maybe get it from the tsv ...'
+
+%.md5: %.synid | $(CONDA_ENV)
+	@echo 'find another way to get md5. Maybe get it from the tsv ...'
+
+
+%.md5: %.gsutil | $(CONDA_ENV)
+	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	gsutil hash -h $(shell cat $(word 1, $<)) | awk '/Hash \(md5\)/{print $$3}' > $@
