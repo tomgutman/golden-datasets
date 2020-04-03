@@ -1,11 +1,14 @@
-.PHONY: all clean download_test download bam2fastq compress check_test
+.PHONY: all clean download bam2fastq compress check
 .ONESHELL:
+.PRECIOUS: %.local.hashes
 
 SHELL   = /bin/bash
 WGET    = wget
 CONDA   = conda
 MKDIR_P = mkdir -p
 RM_RF   = rm -rf
+
+TEST               := false
 
 CONDA_BASE          = $(shell conda info --base)
 CONDA_ENV           = $(addsuffix /env, $(realpath .))
@@ -16,47 +19,42 @@ SYNAPSE_SESSION     = $(HOME)/.synapseSession
 BEDTOOLS_URL        = https://github.com/arq5x/bedtools2/releases/download/v2.29.2/bedtools.static.binary
 
 DATA_DIR            = data
-DATASETS_TSV        = $(DATA_DIR)/datasets.tsv
-DATASETS_TEST_TSV   = $(DATA_DIR)/datasets.test.tsv
-
 DEFAULT_DIR         = $(DATA_DIR) # Change this line if you want to change the default directory
-#TODO: Dynamic set doesn't work correctly
+
 # INSTALL_INPUT	:= $(realpath $(shell read -p "Enter path to installation directory [build]:"$$'\n' && echo $$REPLY))
+
+ifeq ($(TEST),true)
+DATASETS_TSV        := $(DATA_DIR)/datasets.test.tsv
+INSTALL_DIR         ?= $(or $(INSTALL_INPUT), $(strip $(DEFAULT_DIR)))/test
+else
+DATASETS_TSV        := $(DATA_DIR)/datasets.tsv
 INSTALL_DIR         ?= $(or $(INSTALL_INPUT), $(strip $(DEFAULT_DIR)))
-TEST_DIR            := $(INSTALL_DIR)/test
+endif
 
-EXTRACT_TSV_CMD     := awk 'BEGIN {ext=""} NR<=1 {next} {if($$5 !~ /null/) ext="gsutil"; else if ($$4 !~ /null/) ext="synid"; else ext="url"; printf "%s/%s.%s\n", $$1, $$2, ext}'
+#TODO: Dynamic set doesn't work correctly
 
-DLIDS_FILES           := $(add prefix $(INSTALL_DIR)/, $(shell $(EXTRACT_TSV_CMD) $(DATASETS_TSV)))
-DLIDS_TEST_FILES      := $(addprefix $(TEST_DIR)/, $(shell $(EXTRACT_TSV_CMD) $(DATASETS_TEST_TSV)))
+EXTRACT_TSV_CMD       := awk 'BEGIN {ext=""} NR<=1 {next} {if($$5 !~ /null/) ext="gsutil"; else if ($$4 !~ /null/) ext="synid"; else ext="url"; printf "%s/%s.%s\n", $$1, $$2, ext}'
+
+DLIDS_FILES           := $(addprefix $(INSTALL_DIR)/, $(shell $(EXTRACT_TSV_CMD) $(DATASETS_TSV)))
+
 URL_FILES             := $(filter %.url, $(DLIDS_FILES))
-URL_TEST_FILES        := $(filter %.url, $(DLIDS_TEST_FILES))
 SYNIDS_FILES          := $(filter %.synid, $(DLIDS_FILES))
-SYNIDS_TEST_FILES     := $(filter %.synid, $(DLIDS_TEST_FILES))
 GSUTIL_FILES          := $(filter %.gsutil, $(DLIDS_FILES))
-GSUTIL_TEST_FILES     := $(filter %.gsutil, $(DLIDS_TEST_FILES))
 
 DATASETS_FROM_URL_FILES         :=  $(URL_FILES:.url=)
-DATASETS_FROM_URL_TEST_FILES    :=  $(URL_TEST_FILES:.url=)
 DATASETS_FROM_GSUTIL_FILES      :=  $(GSUTIL_FILES:.gsutil=)
-DATASETS_FROM_GSUTIL_TEST_FILES :=  $(GSUTIL_TEST_FILES:.gsutil=)
 DATASETS_FROM_SYNID_FILES       :=  $(SYNIDS_FILES:.synid=)
-DATASETS_FROM_SYNID_TEST_FILES  :=  $(SYNIDS_TEST_FILES:.synid=)
 
 DATASETS_FILES        := $(DATASETS_FROM_URL_FILES) $(DATASETS_FROM_SYNID_FILES) $(DATASETS_FROM_GSUTIL_FILES)
-DATASETS_TEST_FILES   := $(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_SYNID_TEST_FILES) $(DATASETS_FROM_GSUTIL_TEST_FILES)
 
-DATASETS_DIRS       := $(shell echo "$(dir $(DATASETS_FILES))" | tr ' ' '\n' | uniq)
-DATASETS_TEST_DIRS  := $(shell echo "$(dir $(DATASETS_TEST_FILES))" | tr ' ' '\n' | uniq)
+DATASETS_DIRS         := $(shell echo "$(dir $(DATASETS_FILES))" | tr ' ' '\n' | uniq)
 
-BAM_FILES           := $(shell find $(INSTALL_DIR)/ -type f -name '*.bam')
-BAM2FASTQ_FILES     := $(BAM_FILES:.bam=.r1.fastq) $(BAM_FILES:.bam=.r2.fastq)
-FASTQ2GZ_FILES      := $(BAM2FASTQ_FILES:.fastq=.fastq.gz)
+BAM_FILES             := $(shell find $(INSTALL_DIR)/ -type f -name '*.bam')
+BAM2FASTQ_FILES       := $(BAM_FILES:.bam=.r1.fastq) $(BAM_FILES:.bam=.r2.fastq)
+FASTQ2GZ_FILES        := $(BAM2FASTQ_FILES:.fastq=.fastq.gz)
 
-CRC32C_FILES        := $(GSUTIL_FILES:.gsutil=.crc32c)
-CRC32C_TEST_FILES   := $(GSUTIL_TEST_FILES:.gsutil=.crc32c)
-MD5_FILES           := $(GSUTIL_FILES:.gsutil=.md5) $(SYNIDS_FILES:.synid=.md5) $(URL_FILES:.url=.md5)
-MD5_TEST_FILES      := $(GSUTIL_TEST_FILES:.gsutil=.md5) $(SYNIDS_TEST_FILES:.synid=.md5) $(URL_TEST_FILES:.url=.md5)
+CHECKSUM_FILES           := $(GSUTIL_FILES:.gsutil=.checksum) $(SYNIDS_FILES:.synid=.checksum) $(URL_FILES:.url=.checksum)
+LOCAL_HASHES_FILES       := $(CHECKSUM_FILES:.checksum=.local.hashes)
 
 ifeq (, $(shell which $(CONDA)))
 $(error "No $(CONDA) in $PATH, check miniconda website to install it ($(CONDA_URL))")
@@ -70,20 +68,14 @@ all: download
 
 download: $(DATASETS_FILES)
 
-download_test: $(DATASETS_TEST_FILES)
-
 bam2fastq: $(BAM2FASTQ_FILES)
 
 compress: $(FASTQ2GZ_FILES)
 
-check: $(CRC32C_FILES) $(MD5_FILES)
-
-check_test: $(CRC32C_TEST_FILES) $(MD5_TEST_FILES)
+check: $(CHECKSUM_FILES)
 
 clean:
-	$(RM_RF) $(URL_FILES) $(URL_TEST_FILES)
-	$(RM_RF) $(DATASETS_TEST_FILES) $(DATASETS_FILES) 
-	$(RM_RF) $(TEST_DIR) $(DATASETS_DIRS)
+	$(RM_RF) $(LOCAL_HASHES_FILES)
 
 
 ###############################################################################
@@ -99,42 +91,39 @@ $(CONDA_ENV): environment.yml
 ###############################################################################
 #                                 DOWNLOAD
 ###############################################################################
-.INTERMEDIATE: $(DLIDS_TEST_FILES) $(DLIDS_FILES)
-# TODO: Check file hash
+.INTERMEDIATE: $(DLIDS_FILES)
 
 %/:
 	$(MKDIR_P) $(@D)
 
-%.synid:
-	awk '$$2 ~ /^$(notdir $*)$$/ {print $$4}' $< > $@
+%.synid: $(DATASETS_TSV) | $(DATASETS_DIRS)
+	@out=$$(awk '$$2 ~ /^$(notdir $*)$$/ {if ($$4 != "null")print $$4; else exit 1}' $<) && echo $$out > $@ || echo "e[33mSynapse ID not found for $*\e[0m"
 
-%.gsutil:
-	awk '$$2 ~ /^$(notdir $*)$$/ {print $$5}' $< > $@
+%.gsutil: $(DATASETS_TSV) | $(DATASETS_DIRS)
+	@out=$$(awk '$$2 ~ /^$(notdir $*)$$/ {if ($$5 != "null")print $$5; else exit 1}' $<) && echo $$out > $@  || echo "e[33mGoogle storage URI not found for $*\e[0m"
 
-%.url: 
-	awk '$$2 ~ /^$(notdir $*)$$/ {print $$3}' $< > $@
-
-$(DLIDS_TEST_FILES): $(DATASETS_TEST_TSV) | $(DATASETS_TEST_DIRS)
-$(DLIDS_FILES): $(DATASETS_TSV) | $(DATASETS_DIRS)
+%.url: $(DATASETS_TSV) | $(DATASETS_DIRS)
+	@out=$$(awk '$$2 ~ /^$(notdir $*)$$/ {if ($$3 != "null")print $$3; else exit 1}' $<) && echo $$out > $@  || echo "e[33mURL not found for $*\e[0m"
 
 # If synapse credentials not saved before, login and save them with the OS keyring tool
 $(SYNAPSE_SESSION): | $(CONDA_ENV)
-	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	@$(CONDA_ACTIVATE) $(CONDA_ENV)
 	synapse login --rememberMe
 
 # Download file from synapse if there is an URL in the tsv file
 # TODO: use rsync instead
-$(DATASETS_FROM_URL_TEST_FILES) $(DATASETS_FROM_URL_FILES): %: | %.url
+$(DATASETS_FROM_URL_FILES): %: | %.url
 	$(WGET) -O $@ $(shell cat $(word 1, $|))
 
 # Download file from synapse if there is a synapse ID in the tsv file
-$(DATASETS_FROM_SYNID_FILES) $(DATASETS_FROM_SYNID_TEST_FILES): %: | %.synid $(SYNAPSE_SESSION)
-	$(CONDA_ACTIVATE) $(CONDA_ENV)
+$(DATASETS_FROM_SYNID_FILES): %: | %.synid $(SYNAPSE_SESSION)
+	@$(CONDA_ACTIVATE) $(CONDA_ENV)
 	syn_file=$$(synapse get --downloadLocation $(@D) $(shell cat $(word 1, $|)) | awk 'BEGIN {FS=" "} /Downloaded file/ {print $$3}') && \
 	mv $(@D)/$${syn_file} $@
 
-$(DATASETS_FROM_GSUTIL_FILES) $(DATASETS_FROM_GSUTIL_TEST_FILES): %: | %.gsutil $(CONDA_ENV)
+$(DATASETS_FROM_GSUTIL_FILES): %: | %.gsutil $(CONDA_ENV)
 	gsutil cp  $(shell cat $(word 1, $|)) $(@D)
+
 
 ###############################################################################
 #                                 bam2fastq
@@ -142,33 +131,40 @@ $(DATASETS_FROM_GSUTIL_FILES) $(DATASETS_FROM_GSUTIL_TEST_FILES): %: | %.gsutil 
 
 # bedtools bamtofastq -i $< -fq $(word 1, $@)
 %.r1.fastq %.r2.fastq: %.bam | $(CONDA_ENV)
-	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	@$(CONDA_ACTIVATE) $(CONDA_ENV)
 	gatk SamToFastq --INPUT=$< --FASTQ=$*.r1.fastq --SECOND_END_FASTQ=$*.r2.fastq
 
 %.fastq.gz: %.fastq | $(CONDA_ENV)
-	$(CONDA_ACTIVATE) $(CONDA_ENV)
+	@$(CONDA_ACTIVATE) $(CONDA_ENV)
 	pigz $<
 
 
 ###############################################################################
 #                                 check
 ###############################################################################
-.INTERMEDIATE: $(CRC32C_FILES) $(MD5_FILES) $(CRC32C_TEST_FILES) $(MD5_TEST_FILES)
+.INTERMEDIATE: $(CHECKSUM_FILES)
+
+# TODO: use sha256sum
+%.ori.hashes: %.synid | $(SYNAPSE_SESSION)
+	@$(CONDA_ACTIVATE) $(CONDA_ENV)
+	synapse show $(shell cat $(word 1, $<)) | awk -F '=' '/md5/{print $$2}' > $@
 
 # Get file Hash from TSV or trhough an API like gsutil + URI
+%.ori.hashes: %.url | $(CONDA_ENV)
+	@echo -e '\e[33mMD5 checksum from url not supported yet (will be added as a new column in another release).\e[0m'
+	touch $@
 
-# For Gsutil generate crc32c hash in hexadecimal format
-%.crc32c: %.gsutil | $(CONDA_ENV)
-	$(CONDA_ACTIVATE) $(CONDA_ENV)
-	gsutil hash -h $(shell cat $(word 1, $<)) | awk '/Hash \(crc32c\)/{print $$3}' > $@
+%.ori.hashes: %.gsutil | $(CONDA_ENV)
+	@$(CONDA_ACTIVATE) $(CONDA_ENV)
+	gsutil hash $(shell cat $(word 1, $<)) | awk '/crc32c/{print $$3}' > $@
 
-%.md5: %.url | $(CONDA_ENV)
-	@echo 'find another way to get md5. Maybe get it from the tsv ...'
+# For Gsutil generate crc32c/md5 hash in hexadecimal format
+%.local.hashes: %.gsutil | $(CONDA_ENV)
+	@$(CONDA_ACTIVATE) $(CONDA_ENV)
+	gsutil hash $* | awk '/crc32c/{print $$3}' > $@
 
-%.md5: %.synid | $(CONDA_ENV)
-	@echo 'find another way to get md5. Maybe get it from the tsv ...'
+%.local.hashes: %.synid | $(CONDA_ENV)
+	md5sum $* | awk '{print $$1}' > $@
 
-
-%.md5: %.gsutil | $(CONDA_ENV)
-	$(CONDA_ACTIVATE) $(CONDA_ENV)
-	gsutil hash -h $(shell cat $(word 1, $<)) | awk '/Hash \(md5\)/{print $$3}' > $@
+%.checksum: %.ori.hashes %.local.hashes | $(CONDA_ENV)
+	@diff $^ && echo -e "\e[32mHashes are identical for $@ \e[0m" && touch $@ || echo -e "\e[31mHashes are not the same for $@ !\e[0m"
