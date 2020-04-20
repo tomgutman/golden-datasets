@@ -35,6 +35,10 @@ make download -j 4 INSTALL_DIR=$HOME/golden-datasets
 
 By default, the installation directory is set to the `data` folder in the main repository aside the dataset `tsv` files. This behaviour can be change like in the example above where the installation directory is set from the environment variable `INSTALL_DIR`. Environment variables can be passed to the `make`command line tool as positional arguments. 
 
+<aside class="notice">
+Several files in those datasets require a synapse account in order to download them. Go to https://www.synapse.org/ in order to create an account. Those credentials will be asked the first time the make command is launched.</aside>
+
+
 ### Convert and compress downloaded files
 
 Mapping files located in the `INSTALL_DIR` folder can be converted to fastq with the command below. The tool `Picard SamToFastq` is used for the conversion.
