@@ -1,4 +1,9 @@
 #New file to check SV metrics for DREAM datasets results
+
+
+#Set your own directory
+setwd('~/Descargas/SVinsilicos')
+
 #LIBRARIES
 
 load.lib<-c("stringr", "viridis", "data.table","ggplot2","gridExtra","UpSetR",
@@ -279,6 +284,7 @@ metrics_calculator_tab <- function(insilico_sv_tab, truth_insilico_sv_tab, SV_ty
 #Set your own directory
 setwd('~/Downloads')
 
+
 truth_insilico_1_sv_tab <-"./truth.SV.synthetic.challenge.set1.vcf"
 insilico_1_sv_tab_hmf <- "./insilico_1_sv_hmf.vcf"
 SV_types_in_sample <- c("DEL", "INV", "DUP")
@@ -543,7 +549,6 @@ table(truth.3.inv.vcf[,10])
 # Recall = 594 / (153 + 594) = 0.7951807
 # Precision = 594 / (1106 + 594) = 0.3494118
 # F-Score = 2 * Precision * Recall / (Precision + Recall) = 2 * 0.7951807 * 0.3494118 / ( 0.7951807 + 0.3494118 ) = 0.4854925
-
 
 
 

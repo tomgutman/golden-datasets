@@ -1,0 +1,24 @@
+README
+
+Instructions from WP2
+
+Download FASTQs files from the cloud (ftp.life.bsc.es) EuCancan > DREAM > FASTQs, with your credentials
+
+Execute your variant calling pipelines on the three samples on hg19 reference genome. Any version of hg19 can be used. This genome and its BWA index files are available in the cloud under EuCancan > Reference_genome_and_index.
+
+The resulting files should be one VCF for snvs and another for indels for each sample.
+For SV it can be a VCF or a tabulated file (.tsv)
+
+Name them: insilico_1_snvs.vcf, insilico_1_indels.vcf, insilico_1_sv.vcf, insilico_2_snvs.vcf etc...
+
+Upload the resulting variant calling files for the 3 DREAM insilico samples in the folder with the name of your institution to the cloud under EuCancan > DREAM > VARIANT_CALLING_RESULTS
+
+Thank you for your cooperation 
+Do not hesitate to contact us with any doubts or issues
+
+WP2 working group
+Philippe Hupe - Philippe.Hupe@curie.fr
+Tom Gutman - Tom.Gutman@curie.fr
+Fabrice Allain - fabrice.allain@curie.fr
+Daphne van Beek - D.vanBeek@hartwigmedicalfoundation.nl
+Alvaro Ferriz - aferriz@bsc.es

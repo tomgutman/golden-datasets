@@ -1,4 +1,12 @@
 #New file to check INDELS metrics for DREAM datasets results
+
+
+
+#Set your own directory
+setwd('~/Descargas/INDELinsilicos')
+
+
+
 #LIBRARIES
 
 load.lib<-c("stringr", "viridis", "data.table","ggplot2","gridExtra","UpSetR",
@@ -40,8 +48,11 @@ metrics_calculator_indel <- function(insilico_vcf, truth_insilico_vcf){
   return(metrics_X)}
 
 
+
 #Set your own directory
 setwd('~/Downloads')
+
+
 # truth_insilico_1_indel_vcf <-"./truth.indel.synthetic.challenge.set1.vcf"
 # truth_insilico_2_indel_vcf <-"./truth.indel.synthetic.challenge.set2.vcf"
 truth_insilico_3_indel_vcf <-"./truth.indel.synthetic.challenge.set3.vcf"
@@ -109,9 +120,17 @@ insilico_3_result_indels_oicr
 insilico_3_result_indels_hmf
 
 
+
 insilico_3_indels_curie <- "./insilico_3_indels_curie.vcf"
 
 insilico_3_result_indels_curie <- metrics_calculator_indel(insilico_3_indels_curie,truth_insilico_3_indel_vcf) 
 
 insilico_3_result_indels_curie
+
+
+
+
+
+
+
 

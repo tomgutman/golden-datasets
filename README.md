@@ -18,7 +18,6 @@ make COMMAND -j NCPUS [VARS]
 | Command | Description |
 | --- | --- |
 |`download`| Download datasets in `data/datasets.tsv` |
-|`test`| Download test data in `data/datasets.test.tsv` |
 |`bam2fastq`| Convert downloaded `bam` files into `fastq` files |
 |`compress`| Compress downloaded `fastq` files with `pigz` |
 |`clean`| Remove downloaded data |
@@ -34,6 +33,10 @@ make download -j 4 INSTALL_DIR=$HOME/golden-datasets
 ```
 
 By default, the installation directory is set to the `data` folder in the main repository aside the dataset `tsv` files. This behaviour can be change like in the example above where the installation directory is set from the environment variable `INSTALL_DIR`. Environment variables can be passed to the `make`command line tool as positional arguments. 
+
+<aside class="notice">
+Several files in those datasets require a synapse account in order to download them. Go to https://www.synapse.org/ in order to create an account. Those credentials will be asked the first time the make command is launched.</aside>
+
 
 ### Convert and compress downloaded files
 
