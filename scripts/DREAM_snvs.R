@@ -1,13 +1,21 @@
 #New file to check SNV metrics for DREAM datasets results
 
+#LIBRARIES
+
+# sudo apt-get install libxml2 libxml2-dev
+
+
 #Set your own directory
 setwd('~/Descargas/SNVinsilicos')
 
 #LIBRARIES
 
+
 load.lib<-c("stringr", "viridis", "data.table","ggplot2","gridExtra","UpSetR",
             "caret","catspec","devtools","tidyr","plyr","dplyr",
             "rpart","rpart.plot","rattle","e1071","openssl","sqldf")
+
+
 
 install.lib<-load.lib[!load.lib %in% installed.packages()]
 for(lib in install.lib) {install.packages(lib,dependencies=TRUE)}
@@ -44,6 +52,9 @@ sapply(load.lib,library,character=TRUE)
   return(metrics_X)}
 
 
+
+ #Set your own directory
+ setwd('~/Downloads')
 
  truth_insilico_1_snv_vcf <-"./truth.snvs.synthetic.challenge.set1.vcf"
  truth_insilico_2_snv_vcf <-"./truth.snvs.synthetic.challenge.set2.vcf"
@@ -118,3 +129,25 @@ sapply(load.lib,library,character=TRUE)
  insilico_3_result_snv_oicr
  insilico_3_result_snv_hmf
  
+
+ 
+ 
+ #DEVEL
+ 
+ insilico_1_snv_curie <- "./insilico_1_snvs_curie.vcf"
+ insilico_1_result_snv_curie <- metrics_calculator_snv(insilico_1_snv_curie,truth_insilico_1_snv_vcf)
+ # insilico_1_result_snv_curie
+ 
+ insilico_2_snv_curie <- "./insilico_2_snvs_curie.vcf"
+ insilico_2_result_snv_curie <- metrics_calculator_snv(insilico_2_snv_curie,truth_insilico_2_snv_vcf)
+ # insilico_2_result_snv_curie
+ 
+ insilico_3_snv_curie <- "./insilico_3_snvs_curie.vcf"
+ insilico_3_result_snv_curie <- metrics_calculator_snv(insilico_3_snv_curie,truth_insilico_3_snv_vcf)
+ # insilico_3_result_snv_curie
+
+ 
+ insilico_1_result_snv_curie
+ insilico_2_result_snv_curie
+ insilico_3_result_snv_curie
+
