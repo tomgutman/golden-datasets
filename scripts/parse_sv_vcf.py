@@ -58,13 +58,6 @@ def parse(vcf_reader, samplename):
 
         start_chrom = record.CHROM.replace("CHR", "").replace("chr", "")
         start = record.POS
-        '''
-        if record.POS != record.start:
-            print("WEIRD")
-            print(record)
-            print(record.POS)
-            print(record.start)
-        '''
 
         # Check if variant is SV
         if record.is_sv:
