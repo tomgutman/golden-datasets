@@ -1,4 +1,15 @@
 # Scripts
 
-Preliminary scripts to compute the metrics. They are executed from inside the script and setting the working directory as the folder containing the vcf files of the corresponding variant type.
+Folder with development scripts.
 
+To ensure execution use: 
+
+```shell
+conda env create --name ingestion python=3.6 -f environment.yml
+```
+
+```shell
+conda activate ingestion
+```
+
+Add any new requirement for your code to [environment.yml](https://github.com/EUCANCan/golden-datasets/blob/devel/scripts/environment.yml) (if it is compatible)
