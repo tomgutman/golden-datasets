@@ -53,6 +53,8 @@ def main():
     print(dummy_df)
     '''
 
+    # Todo: what about fusions?
+
     print("Total number of variants processed: " + str(nr_of_vars))
     print("Filtered variants of total: " + str(nr_filtered))
 
