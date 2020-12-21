@@ -1,4 +1,3 @@
-
 def parse(vcf_reader):
     variants = []
     nr_of_vars = 0
