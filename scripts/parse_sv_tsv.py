@@ -16,17 +16,20 @@ def parse(vcf_reader):
             if "##reference" in line[0]:
                 ref_version = "\t".join(line)
                 
-            # Parse in header line for BSC, Charite
-            if line[0] in ["CHR1", "#chrom1"]:
+            # Parse in header line for BSC, Charite, Truth file tsv
+            if line[0] in ["CHR1", "#chrom1", "new_id"]:
                 header = line
                 print("[INFO] Header of TSV file found.")
                 #print(header)
-
+    
             # If variants are reached without column names been found, stop execution
-            if line[0] in list(map(str,list(range(1,23)))) or line[0] in ["X", "Y"] or line[0].startswith("chr"):
+            if line[0] in list(map(str,list(range(1,23)))) \
+                or line[0] in ["X", "Y"] \
+                    or line[0].startswith("chr") \
+                        or line[0].startswith("truthset"):
                 if header == False:
                     sys.exit("[ERROR] Column names not found. Exiting.")
-
+    
             continue
     
         nr_of_vars += 1
@@ -47,9 +50,12 @@ def parse(vcf_reader):
             '''
         # Charite support
         elif '#chrom1' in header: # Charite does not have FILTER column so it does not apply. We need to ask them.
+            pass 
+        # COLO829 truth file (no need to filter)
+        elif "new_id" in header:
             pass
-
-
+    
+    
         # FIND VARIANT INFO (option to separate in a different function)
         # BSC TSV support
         if 'CHR1' in header:
@@ -57,22 +63,38 @@ def parse(vcf_reader):
             start = line[header.index('POS1')]
             end_chrom = line[header.index('CHR2')]
             end = line[header.index('POS2')]
-         
-         # Charite TSV support
+            ref = None
+            alt = None
+            if start_chrom == end_chrom:
+                length = int(end) - int(start)
+            else:
+                length = None #Only for SV involving different chr.. maybe use sth more specific.
+    
+        # Charite TSV support
         elif '#chrom1' in header:   
             start_chrom = line[header.index('#chrom1')]
             start = line[header.index('start1')]
             end_chrom = line[header.index('chrom2')]
             end = line[header.index('start2')]
+            ref = None
+            alt = None
+            if start_chrom == end_chrom:
+                length = int(end) - int(start)
+            else:
+                length = None #Only for SV involving different chr.. maybe use sth more specific.
     
-        ref = None
-        alt = None  
-        
-        if start_chrom == end_chrom:
-            length = int(end) - int(start)
-        else:
-            length = None #Only for SV involving different chr.. maybe use sth more specific.
-
+        #Truth COLO829 support
+        elif "new_id" in header: 
+            start_chrom = line[header.index('chr1')]
+            start = line[header.index('pos1')]
+            end_chrom = line[header.index('chr2')]
+            end = line[header.index('pos2')]
+            ref = line[header.index('ref')]
+            alt = None
+            length = line[header.index('size')]
+            if length in [0, "0"]:
+                length = None #Only for SV involving different chr.. maybe use sth more specific.
+    
             
         # FIND SV TYPE
         # BSC TSV support
@@ -106,21 +128,24 @@ def parse(vcf_reader):
                     print("Unknown SV combination! Please check!")
                     print(svtypes)
                     sv_type = None
-
+    
         # Charite support
         elif '#chrom1' in header:
             sv_type = line[header.index('svtype')]
-        
+        #Truth COLO829 support
+        elif "new_id" in header:
+            sv_type = line[header.index('type')]
+            
         # Reformat types
         sv_type = sv_type.replace("deletion", "DEL")
         sv_type = sv_type.replace("inversion", "INV")
         sv_type = sv_type.replace("translocation", "TRA")
         sv_type = sv_type.replace("insertion", "INS")
         sv_type = sv_type.replace("duplication", "DUP")
-
+    
         #Gather variant info
         variants.append([start_chrom, start, end_chrom, end, ref, alt, length, sv_type])
-
+    
     print("[INFO] Reference version: " + ref_version)
 
     return(variants, nr_of_vars, nr_filtered)
