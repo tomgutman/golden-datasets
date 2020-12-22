@@ -16,43 +16,50 @@ def parse(vcf_reader):
             if "##reference" in line[0]:
                 ref_version = "\t".join(line)
                 
-            # Parse in header line
-            if line[0] == "CHR1" or line[0] == "#chrom1": #BSC and Charite support
+            # Parse in header line for BSC, Charite
+            if line[0] in ["CHR1", "#chrom1"]:
                 header = line
-            
+                print("[INFO] Header of TSV file found.")
+                #print(header)
+
             # If variants are reached without column names been found, stop execution
-            if line[0] == "1" or line[0] == "chr1":
+            if line[0] in list(map(str,list(range(1,23)))) or line[0] in ["X", "Y"] or line[0].startswith("chr"):
                 if header == False:
                     sys.exit("[ERROR] Column names not found. Exiting.")
-                
+
             continue
     
         nr_of_vars += 1
         
-        # Different processing depending if it's BSC file or Charite file
-        if "FILTER" in header: # Charite does not have FILTER column so it does not apply. We need to ask them.
-            
-            # Filter out variants with filter tag
+        # FILTERING (Option to separate this in a different function)
+        # BSC support
+        if 'FILTER' in header: 
             if line[header.index('FILTER')] != "PASS":
                 #print("[DEBUG] Found filter: " + str(line[header.index('CUSTOM_FILTER')]))
                 nr_filtered += 1
-                continue #This makes to go to the next line and forget about this variant
-                
-                #Maybe we could recover these discarded variants in another dataframe...
-    
+                continue
+            # Maybe we could recover these discarded variants in another dataframe for checking purposes
             '''
             # Filter out variants that do not get called by min_nr_progs
             if int(line[header.index('NPROGS')]) < min_nr_progs:
                 nr_filtered += 1
                 continue
             '''
-            # If .tsv is from BSC:
+        # Charite support
+        elif '#chrom1' in header: # Charite does not have FILTER column so it does not apply. We need to ask them.
+            pass
+
+
+        # FIND VARIANT INFO (option to separate in a different function)
+        # BSC TSV support
+        if 'CHR1' in header:
             start_chrom = line[header.index('CHR1')]
             start = line[header.index('POS1')]
             end_chrom = line[header.index('CHR2')]
             end = line[header.index('POS2')]
-        
-        else: # If .tsv is from Charite:
+         
+         # Charite TSV support
+        elif '#chrom1' in header:   
             start_chrom = line[header.index('#chrom1')]
             start = line[header.index('start1')]
             end_chrom = line[header.index('chrom2')]
@@ -65,10 +72,11 @@ def parse(vcf_reader):
             length = int(end) - int(start)
         else:
             length = None #Only for SV involving different chr.. maybe use sth more specific.
-    
-        # Find sv_type
-        # If .tsv is from BSC:
-        if "FILTER" in header:
+
+            
+        # FIND SV TYPE
+        # BSC TSV support
+        if 'CHR1' in header:
             svtypes = []
             progs = line[header.index('PROGS')]
             for prog in progs.split(","):
@@ -98,24 +106,21 @@ def parse(vcf_reader):
                     print("Unknown SV combination! Please check!")
                     print(svtypes)
                     sv_type = None
-    
-        # If .tsv is from Charite:
-        else: 
-            sv_type=line[header.index('svtype')]
-    
-    
-    
-        # Reformat types
+
+        # Charite support
+        elif '#chrom1' in header:
+            sv_type = line[header.index('svtype')]
         
+        # Reformat types
         sv_type = sv_type.replace("deletion", "DEL")
         sv_type = sv_type.replace("inversion", "INV")
         sv_type = sv_type.replace("translocation", "TRA")
         sv_type = sv_type.replace("insertion", "INS")
-        sv_type = sv_type.replace("insertion", "INS")
-    
-        #print([start_chrom, start, end_chrom, end, ref, alt, length, sv_type])
+        sv_type = sv_type.replace("duplication", "DUP")
+
+        #Gather variant info
         variants.append([start_chrom, start, end_chrom, end, ref, alt, length, sv_type])
-    
+
     print("[INFO] Reference version: " + ref_version)
-    
+
     return(variants, nr_of_vars, nr_filtered)
