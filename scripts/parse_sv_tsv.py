@@ -33,7 +33,7 @@ def parse(vcf_reader):
         
         # FILTERING (Option to separate this in a different function)
         # BSC support
-        if 'FILTER' in header: 
+        if 'CHR1' in header: 
             if line[header.index('FILTER')] != "PASS":
                 #print("[DEBUG] Found filter: " + str(line[header.index('CUSTOM_FILTER')]))
                 nr_filtered += 1
