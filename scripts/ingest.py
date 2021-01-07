@@ -10,6 +10,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("vcf", help="Path to SV vcf file")
     parser.add_argument("-samplename", help="Sample name if multisampleVCF")
+    parser.add_argument("-outputfile", help="If dataframe should be saved to CSV, give output file path here")
 
     args = parser.parse_args()
 
@@ -42,6 +43,13 @@ def main():
         columns = ["start_chrom", "start", "end_chrom", "end", "ref", "alt" ,"length", "type"]
         data = pd.DataFrame(variants, columns=columns)
         print(data)
+
+        # Save dataframe to file
+        if args.outputfile:
+            data.to_csv(args.outputfile)
+
+        return(data)
+
     else:
         sys.exit("No data parsed, please check your input data.")
 
