@@ -15,10 +15,10 @@ conda activate ingestion
 Add any new requirement for your code to [environment.yml](https://github.com/EUCANCan/golden-datasets/blob/devel/scripts/environment.yml) (if it is compatible)
 
 
-## 1) ingestion
+## 1) Ingestion
 
 Creates dataframes from VCF/TSV files. This step is required both for test files and truth files.
-Flag -samplename is required for VCF files and must contain the Tumor sample name
+Flag `-samplename` is required for VCF files and must contain the Tumor sample name
 
 ```shell
 python ingest.py VCF_FILE -outputfile DATAFRAME_FILE
