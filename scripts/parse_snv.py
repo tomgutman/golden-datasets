@@ -6,12 +6,14 @@ def parse(vcf_reader, samplename):
     require the vcf path and the samplename if multisample vcf
     """
 
-    variants = []
+    variants_snv = []
+    variants_indel = []
     sample = None
     nr_of_vars = 0
     nr_filtered = 0
 
     for record in vcf_reader:
+        #print(record.var_type)
         nr_of_vars += 1
 
         # Only use 'PASS' calls
@@ -37,7 +39,17 @@ def parse(vcf_reader, samplename):
             ref = record.REF
             alt = record.ALT
 
-            variants.append([chrom, pos, ref, alt])
+            if record.var_type == "indel":
+                variants_indel.append([chrom, pos, ref, alt])
+                #print("indel: {} {} {}".format(pos,ref,alt))
+
+            elif record.var_type == "snp":
+                #print ("snp: {} {} {}".format(pos,ref,alt))
+                variants_snv.append([chrom, pos, ref, alt])
+            else:
+                print("unknown: {} {} {} {}".format(record.var_type,pos,ref,alt))
+
+
 
         elif record.FILTER != []:
             nr_filtered += 1
@@ -45,4 +57,4 @@ def parse(vcf_reader, samplename):
 
     #print(variants)
 
-    return(variants, nr_of_vars, nr_filtered)
+    return(variants_snv, variants_indel, nr_of_vars, nr_filtered)
