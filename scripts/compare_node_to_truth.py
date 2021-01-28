@@ -86,16 +86,13 @@ def main():
 
     args = parser.parse_args()
 
-    node = pd.read_csv(args.df_node)
-    truth = pd.read_csv(args.df_truth)
+    node = pd.read_csv(args.df_node, index_col=0)
+    truth = pd.read_csv(args.df_truth, index_col=0)
     truth['times_checked'] = 0
     sv_df = []
     columns_sv_df = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'dup_truth']
     truth_matched_df = []
     window = 1000
-
-    similar_sv_types = {'TRA': ['TRA', 'BND'],
-                        'BND': ['BND', 'TRA']}
 
     # For each row in the test file:
     for index, row in node.iterrows():
@@ -117,7 +114,7 @@ def main():
                     sv_df.append(calculate_characteristics(matches.iloc[j], row, window))
                     #Compare the test variant (row) to every possible truth variant within the window. Then we will select the most appropiate one based on start site or overlapping rules...
                     truth_matched_df.append(match)
-                    ## TODO: increase times_checked number of this truth thingy
+                    truth.loc[matches.iloc[j].name,'times_checked'] += 1
                 else:
                     print("#### We've seen this one before")
                     #Add a TRUE to the column "dup_variant" of the test dataframe
@@ -126,38 +123,6 @@ def main():
         #print(matches)
 
 
-
-    '''
-    #CHECK DIFFERENT FIELDS
-    #POS
-    #matches = truth.loc[(truth['start'] > row['start'] - 1000) & (truth['start'] < row['start'] + 1000)]
-
-    #CHROM
-    #matches = matches.loc[matches['start_chrom'] == row['start_chrom']]
-
-    #LENGTH
-    #matches = matches.loc[(matches['length'] > row['length'] * 0.9) & (matches['length'] < row['length'] * 1.1)]
-
-    #SV TYPE
-    #if row['type'] in ["TRA", "BND"]:
-    #    pass
-    #else:
-    #    matches = matches.loc[matches['type'] == row['type']]
-
-
-    if matches.empty:
-        # Call as false positive
-        fp_df.append(row.tolist())
-    if not matches.empty:
-        # Call as true positive
-        tp_df.append(row.tolist())
-        # If complete match, remove entry from truth dataframe
-        # check if matches contains more then one line
-        truth = truth.drop(index=matches.index.values.tolist())
-        truth = truth.reset_index(drop=True)
-
-
-'''
 
 if __name__ == "__main__":
     main()
