@@ -28,21 +28,26 @@ def main():
         sys.exit("[ERROR] Do not recognize type of input vcf " + args.vcf + ". Exiting.")
 
     # Input file type is VCF. Start parsing.
-    variants, nr_of_vars, nr_filtered = parse_snv.parse(vcf_reader, args.samplename)
+    variants_snv, variants_indel, nr_of_vars, nr_filtered = parse_snv.parse(vcf_reader, args.samplename)
 
     # Create dataframe from all variant data
-    if variants:
+    if variants_snv or variants_indel:
         columns = ["chrom", "pos", "ref", "alt"]
-        data = pd.DataFrame(variants, columns=columns)
-        print(data)
+        data_snv = pd.DataFrame(variants_snv, columns=columns)
+        data_indel = pd.DataFrame(variants_indel, columns=columns)
+        print("\n[INFO] Dataframe for SNV variants")
+        print(data_snv)
+        print("\n[INFO] Dataframe for indel variants")
+        print(data_indel)
     else:
         sys.exit("No data parsed, please check your input data.")
 
     # Save dataframe to file
     if args.outputfile:
-        data.to_csv(args.outputfile)
-
-    print("Total number of variants processed: " + str(nr_of_vars))
+        data_snv.to_csv(args.outputfile + "_snv.csv")
+        data_indel.to_csv(args.outputfile + "_indel.csv")
+    #print("\n")
+    print("\nTotal number of variants processed: " + str(nr_of_vars))
     print("Filtered variants of total: " + str(nr_filtered))
 
 if __name__ == "__main__":
