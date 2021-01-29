@@ -51,7 +51,7 @@ def calculate_characteristics(truth, test, window):
 
     print(test['type'] + "\t" + truth['type'])
     if test['type'] == truth['type']:
-        match_type = "yes"
+        match_type = "YES"
     elif test['type'] == "BND":
         match_type = "BND_test"
     elif truth['type'] == "BND":
@@ -70,8 +70,10 @@ def calculate_characteristics(truth, test, window):
         print(test['type'] + "\t" + truth['type'])
         match_type = "NO"
 
-
-    dup_truth = truth['times_checked']
+    if truth['times_checked'] < 1:
+        dup_truth = False
+    else:
+        dup_truth = True
 
     print([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
 
@@ -91,34 +93,35 @@ def main():
     truth['times_checked'] = 0
     sv_df = []
     columns_sv_df = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'dup_truth']
-    truth_matched_df = []
     window = 1000
 
     # For each row in the test file:
     for index, row in node.iterrows():
         #print(row)
         # Check if there is a variant in truth that matches start_chr and end_chr and start position within 1kb
-        matches = ""
-        matches = truth.loc[(truth['start_chrom'] == row['start_chrom']) & (truth['end_chrom'] == row['end_chrom']) \
-                            & (abs(truth['start'] - row['start']) <  window)]
+        truth_matches = ""
+        truth_matches = truth.loc[(truth['start_chrom'] == row['start_chrom']) & (truth['end_chrom'] == row['end_chrom']) \
+                                  & (abs(truth['start'] - row['start']) <  window)]
 
-        if not matches.empty:
+        if not truth_matches.empty:
             # Add matches to truth_matched_df to evaluate if we've seen them before
-            if matches.shape[0] > 1:	# Skip over the rows with multiple matches in truth
-                continue
-            for j, match in enumerate(matches.values.tolist()):
+            # Find the best match and drop the other one
+            best = None
+            for j, truth_match in enumerate(truth_matches.values.tolist()):
                 # Start processing singles
-                if match not in truth_matched_df: #Here it is comparing every field in matches, it should only compare the ones that are used to check if the test variant "has a truth one" some lines above
-                    #print(match)
-                    # Get the corresponding row from the dataframe to process below
-                    sv_df.append(calculate_characteristics(matches.iloc[j], row, window))
-                    #Compare the test variant (row) to every possible truth variant within the window. Then we will select the most appropiate one based on start site or overlapping rules...
-                    truth_matched_df.append(match)
-                    truth.loc[matches.iloc[j].name,'times_checked'] += 1
+                # Get the corresponding row from the dataframe to process below
+                results = calculate_characteristics(truth_matches.iloc[j], row, window)
+                #Compare the test variant (row) to every possible truth variant within the window. Then we will select the most appropiate one based on start site or overlapping rules...
+                if not best:
+                    best = [j, truth_match, results]
                 else:
-                    print("#### We've seen this one before")
-                    #Add a TRUE to the column "dup_variant" of the test dataframe
-        #print(truth_matched_df)
+                    #evaluate if this entry is better: DEFINITION: start site diff is smallest
+                    if abs(results[3]) < abs(best[2][3]):
+                        print("NEW BEST RESULT")
+                        best = [j, truth_match, results]
+            sv_df.append(best[2])
+            truth.loc[truth_matches.iloc[best[0]].name,'times_checked'] += 1 #UPDATE
+            #print(truth_matched_df)
         #print(row)
         #print(matches)
 
