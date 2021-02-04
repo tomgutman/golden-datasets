@@ -69,7 +69,7 @@ def parse(vcf_reader, samplename):
                 end = record.sv_end + 1
             else:
                 # Parse end from ALT
-                end_pos = str(record.ALT[0]).replace("CHR", "").replace("chr", "").replace("A", "").replace("G", "").replace("T", "").replace("C", "").replace("]", "").replace("[", "")
+                end_pos = str(record.ALT[0]).replace("CHR", "").replace("chr", "").replace("A", "").replace("G", "").replace("T", "").replace("C", "").replace("N", "").replace("]", "").replace("[", "")
                 if "." in end_pos:
                     '''
                     # SV is probably BND?, possible alts: ".str", "str.", "N.", ".N"
