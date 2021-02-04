@@ -2,6 +2,7 @@
 import sys
 import argparse
 import pandas as pd
+import numpy as np
 
 '''
 inv_a <-VC_tab_formated[grepl("*]$",VC_tab_formated$ALT),]
@@ -41,15 +42,24 @@ def calculate_characteristics(truth, test, window):
 
     diff_end_pos = int(test['end']) - int(truth['end'])
 
-    diff_length = test['length'] - truth['length']
+    if pd.isnull(truth['length']) or pd.isnull(test['length']):
+        diff_length = np.NaN
+    else:
+        diff_length = test['length'] - truth['length']
 
-    length_truth = truth['length']
+    if pd.isnull(truth['length']):
+        length_truth = np.NaN
+    else:
+        length_truth = truth['length']
 
     norm_start_pos = (int(test['start']) - int(truth['start'])) / truth['length']
 
     norm_end_pos = (int(test['end']) - int(truth['end'])) / truth['length']
 
-    length_ratio = min(test['length'], truth['length']) / max(test['length'], truth['length'])
+    if pd.isnull(truth['length']) or pd.isnull(test['length']):
+        length_ratio = np.NaN
+    else:
+        length_ratio = min(test['length'], truth['length']) / max(test['length'], truth['length'])
 
     # Compare the types of the SVs
     #print(test['type'] + "\t" + truth['type'])
@@ -92,8 +102,8 @@ def main():
 
     args = parser.parse_args()
 
-    node = pd.read_csv(args.df_node, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': int, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
-    truth = pd.read_csv(args.df_truth, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': int, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
+    node = pd.read_csv(args.df_node, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': str, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
+    truth = pd.read_csv(args.df_truth, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': str, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
     truth['times_checked'] = 0
     sv_comp_list = []
     sv_fp_list = []
@@ -102,15 +112,15 @@ def main():
 
     # For each row in the test file:
     for index, row in node.iterrows():
-        print(row)
+        #print(row)
         # Check if there is a variant in truth that matches start_chr and end_chr and start position within 1kb
         truth_matches = ""
         truth_matches = truth.loc[(truth['start_chrom'] == row['start_chrom']) & (truth['end_chrom'] == row['end_chrom']) \
                                   & (abs(truth['start'] - row['start']) <  window)]
 
         if not truth_matches.empty:
-            print("[DEBUG] Match found.")
-            print(truth_matches)
+            #print("[DEBUG] Match found.")
+            #print(truth_matches)
             # Add matches to truth_matched_df to evaluate if we've seen them before
             # Find the best match and drop the other one
             best = None
@@ -124,13 +134,13 @@ def main():
                 else:
                     #evaluate if this entry is better: DEFINITION: start site diff is smallest
                     if abs(results[3]) < abs(best[2][3]):
-                        print("NEW BEST RESULT")
+                        print("[DEBUG] NEW BEST RESULT")
                         best = [j, truth_match, results]
             sv_comp_list.append(best[2])
             truth.loc[truth_matches.iloc[best[0]].name,'times_checked'] += 1 #UPDATE
             #print(truth_matched_df)
         else:
-            print("[DEBUG] No match found")
+            #print("[DEBUG] No match found")
             sv_fp_list.append(list(row))
         #print(row)
         #print(matches)
