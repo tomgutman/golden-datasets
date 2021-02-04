@@ -88,7 +88,12 @@ def parse(vcf_reader):
             start_chrom = line[header.index('chr1')]
             start = line[header.index('pos1')]
             end_chrom = line[header.index('chr2')]
+            #For insertions we assume that the chrom is the same and the end pos is start +1
+            if end_chrom == "<INS>":
+                end_chrom = start_chrom
             end = line[header.index('pos2')]
+            if end == ".":
+                end = int(start) +1
             ref = line[header.index('ref')]
             alt = None
             length = line[header.index('size')]
