@@ -86,6 +86,9 @@ def parse(vcf_reader, samplename):
 
             if 'SVLEN' in record.INFO:
                 length = record.INFO['SVLEN']
+                if isinstance(length, list):
+                    # Length is list
+                    length = length[0]
             else:
                 if end_chrom == start_chrom:
                     length = int(end) - int(start)

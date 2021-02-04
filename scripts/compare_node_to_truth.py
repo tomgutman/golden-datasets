@@ -43,13 +43,16 @@ def calculate_characteristics(truth, test, window):
 
     diff_length = test['length'] - truth['length']
 
+    length_truth = truth['length']
+
     norm_start_pos = (int(test['start']) - int(truth['start'])) / truth['length']
 
     norm_end_pos = (int(test['end']) - int(truth['end'])) / truth['length']
 
     length_ratio = min(test['length'], truth['length']) / max(test['length'], truth['length'])
 
-    print(test['type'] + "\t" + truth['type'])
+    # Compare the types of the SVs
+    #print(test['type'] + "\t" + truth['type'])
     if test['type'] == truth['type']:
         match_type = "YES"
     elif test['type'] == "BND":
@@ -64,7 +67,7 @@ def calculate_characteristics(truth, test, window):
         match_type = "similar"
     else:
         #Make it more complete in the near future... similar, BND test, BND truth etc....
-        print("We should check: ")
+        print("We should check, type mismatch?: ")
         print(truth)
         print(test)
         print(test['type'] + "\t" + truth['type'])
@@ -75,9 +78,10 @@ def calculate_characteristics(truth, test, window):
     else:
         dup_truth = True
 
-    print([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
+    # Debugging
+    #print([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
 
-    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
+    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
 
 def main():
     parser = argparse.ArgumentParser()
@@ -91,8 +95,9 @@ def main():
     node = pd.read_csv(args.df_node, index_col=0)
     truth = pd.read_csv(args.df_truth, index_col=0)
     truth['times_checked'] = 0
-    sv_df = []
-    columns_sv_df = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'dup_truth']
+    sv_comp_list = []
+    sv_fp_list = []
+    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'dup_truth']
     window = 1000
 
     # For each row in the test file:
@@ -117,14 +122,21 @@ def main():
                 else:
                     #evaluate if this entry is better: DEFINITION: start site diff is smallest
                     if abs(results[3]) < abs(best[2][3]):
-                        print("NEW BEST RESULT")
+                        #print("NEW BEST RESULT")
                         best = [j, truth_match, results]
-            sv_df.append(best[2])
+            sv_comp_list.append(best[2])
             truth.loc[truth_matches.iloc[best[0]].name,'times_checked'] += 1 #UPDATE
             #print(truth_matched_df)
+        else:
+            sv_fp_list.append(list(row))
         #print(row)
         #print(matches)
 
+    sv_comp_df = pd.DataFrame(sv_comp_list, columns=columns_sv_comp_list)
+    sv_fp_df = pd.DataFrame(sv_fp_list, columns=list(node.columns))
+
+    print(sv_comp_df)
+    print(sv_fp_df)
 
 
 if __name__ == "__main__":
