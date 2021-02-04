@@ -147,10 +147,20 @@ def main():
 
     sv_comp_df = pd.DataFrame(sv_comp_list, columns=columns_sv_comp_list)
     sv_fp_df = pd.DataFrame(sv_fp_list, columns=list(node.columns))
+    sv_fn_df = truth.loc[truth['times_checked'] == 0]
 
     print(sv_comp_df)
     print(sv_fp_df)
+    print(sv_fn_df)
 
+    #TODO: get the correct TP value
+    recall = sv_comp_df.shape[0] / (sv_comp_df.shape[0] + sv_fn_df.shape[0])
+    precision = sv_comp_df.shape[0]/(sv_comp_df.shape[0] + sv_fp_df.shape[0])
+    f1 = 2*(recall * precision)/(recall + precision)
+
+    print("Recall:\t" + str(round(recall,2)))
+    print("Precision:\t" + str(round(precision,2)))
+    print("F1-score:\t" + str(round(f1,2)))
 
 if __name__ == "__main__":
     main()
