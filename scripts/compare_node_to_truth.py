@@ -92,8 +92,8 @@ def main():
 
     args = parser.parse_args()
 
-    node = pd.read_csv(args.df_node, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': int, 'ref': str, 'alt': str, 'length': int, 'type': str})
-    truth = pd.read_csv(args.df_truth, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': int, 'ref': str, 'alt': str, 'length': int, 'type': str})
+    node = pd.read_csv(args.df_node, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': int, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
+    truth = pd.read_csv(args.df_truth, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': int, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
     truth['times_checked'] = 0
     sv_comp_list = []
     sv_fp_list = []
