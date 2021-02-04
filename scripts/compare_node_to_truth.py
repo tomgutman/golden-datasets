@@ -49,12 +49,12 @@ def calculate_characteristics(truth, test, window):
 
     if pd.isnull(truth['length']):
         length_truth = np.NaN
+        norm_start_pos = np.NaN
+        norm_end_pos = np.NaN
     else:
         length_truth = truth['length']
-
-    norm_start_pos = (int(test['start']) - int(truth['start'])) / truth['length']
-
-    norm_end_pos = (int(test['end']) - int(truth['end'])) / truth['length']
+        norm_start_pos = (int(test['start']) - int(truth['start'])) / truth['length']
+        norm_end_pos = (int(test['end']) - int(truth['end'])) / truth['length']
 
     if pd.isnull(truth['length']) or pd.isnull(test['length']):
         length_ratio = np.NaN
