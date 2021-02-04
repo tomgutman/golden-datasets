@@ -43,13 +43,16 @@ def calculate_characteristics(truth, test, window):
 
     diff_length = test['length'] - truth['length']
 
+    length_truth = truth['length']
+
     norm_start_pos = (int(test['start']) - int(truth['start'])) / truth['length']
 
     norm_end_pos = (int(test['end']) - int(truth['end'])) / truth['length']
 
     length_ratio = min(test['length'], truth['length']) / max(test['length'], truth['length'])
 
-    print(test['type'] + "\t" + truth['type'])
+    # Compare the types of the SVs
+    #print(test['type'] + "\t" + truth['type'])
     if test['type'] == truth['type']:
         match_type = "YES"
     elif test['type'] == "BND":
@@ -75,9 +78,10 @@ def calculate_characteristics(truth, test, window):
     else:
         dup_truth = True
 
-    print([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
+    # Debugging
+    print([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
 
-    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
+    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
 
 def main():
     parser = argparse.ArgumentParser()
