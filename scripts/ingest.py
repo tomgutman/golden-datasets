@@ -31,6 +31,7 @@ def main():
 
     if hasattr(vcf_reader, 'metadata'):
         # Input file type is VCF. Start parsing.
+        print("[INFO] File format: VCF file")
         variants, nr_of_vars, nr_filtered = parse_sv_vcf.parse(vcf_reader, args.samplename)
 
     else:
