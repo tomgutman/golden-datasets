@@ -44,6 +44,7 @@ def main():
         columns = ["start_chrom", "start", "end_chrom", "end", "ref", "alt" ,"length", "type"]
         data = pd.DataFrame(variants, columns=columns)
 
+        '''
         # Check for duplicate entries, to prevent penalizing the nodes when they have duplicate entries
         dups = data[data.duplicated(keep=False)]
         if not dups.empty:
@@ -51,7 +52,7 @@ def main():
             print(data[data.duplicated(keep=False)])
             data = data.drop_duplicates(keep='first').reset_index(drop=True)   #Only keeping first of the duplicate rows
         print(data)
-
+        '''
         # Save dataframe to file
         if args.outputfile:
             data.to_csv(args.outputfile)
