@@ -28,24 +28,51 @@ def main():
         sys.exit("[ERROR] Do not recognize type of input vcf " + args.vcf + ". Exiting.")
 
     # Input file type is VCF. Start parsing.
-    variants_snv, variants_indel, nr_of_vars, nr_filtered = parse_snv.parse(vcf_reader, args.samplename)
+    variants_snv, variants_indel, variants_sv, nr_of_vars, nr_filtered = parse_snv.parse(vcf_reader, args.samplename)
 
     # Create dataframe from all variant data
-    if variants_snv or variants_indel:
-        columns = ["chrom", "pos", "ref", "alt"]
-        data_snv = pd.DataFrame(variants_snv, columns=columns)
-        data_indel = pd.DataFrame(variants_indel, columns=columns)
-        print("\n[INFO] Dataframe for SNV variants")
-        print(data_snv)
-        print("\n[INFO] Dataframe for indel variants")
-        print(data_indel)
+    if variants_snv or variants_indel or variants_sv:
+        if variants_snv:
+            columns = ["chrom", "pos", "ref", "alt"]
+            data_snv = pd.DataFrame(variants_snv, columns=columns)
+            print("\n[INFO] Dataframe for SNV variants")
+            print(data_snv)
+            if args.outputfile:
+                data_snv.to_csv(args.outputfile + "_snv.csv",index=False)
+        else:
+            print("\n[INFO] Dataframe for SNV variants")
+            print("Empty Dataframe ")
+        if variants_indel:
+            columns = ["chrom", "pos", "ref", "alt"]
+            data_indel = pd.DataFrame(variants_indel, columns=columns)
+            print("\n[INFO] Dataframe for indel variants")
+            print(data_indel)
+
+            if args.outputfile:
+                data_indel.to_csv(args.outputfile + "_indel.csv", index=False)
+        else:
+            print("\n[INFO] Dataframe for indel variants")
+            print("Empty Dataframe ")
+        if variants_sv:
+            columns = ["chrom", "pos", "ref", "alt", "len_ref", "len_alt"]
+            data_sv = pd.DataFrame(variants_sv, columns=columns)
+            print("\n[INFO] Dataframe for structural variants")
+            print(data_sv)
+
+            if args.outputfile:
+                data_sv.to_csv(args.outputfile + "_sv.csv",index=False)
+        else:
+            print("\n[INFO] Dataframe for structural variants")
+            print("Empty Dataframe ")
     else:
         sys.exit("No data parsed, please check your input data.")
 
     # Save dataframe to file
-    if args.outputfile:
-        data_snv.to_csv(args.outputfile + "_snv.csv")
-        data_indel.to_csv(args.outputfile + "_indel.csv")
+    #if args.outputfile:
+        #print("saving file")
+        #data_snv.to_csv(args.outputfile + "_snv.csv")
+        #data_indel.to_csv(args.outputfile + "_indel.csv")
+        #data_sv.to_csv(args.outputfile + "_sv.csv")
     #print("\n")
     print("\nTotal number of variants processed: " + str(nr_of_vars))
     print("Filtered variants of total: " + str(nr_filtered))
