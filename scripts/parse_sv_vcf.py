@@ -99,9 +99,12 @@ def parse(vcf_reader, samplename):
             alt = record.ALT[0]
 
             sv_type = None
+            '''
             if 'EVENTTYPE' in record.INFO: # Support Hartwig
                 sv_type = record.INFO['EVENTTYPE']
-            elif 'SVTYPE' in record.INFO: # Support Curie
+                print(sv_type)
+            '''
+            if 'SVTYPE' in record.INFO: # Support Curie
                 sv_type = record.INFO['SVTYPE']
             else:
                 sv_type = record.var_subtype
