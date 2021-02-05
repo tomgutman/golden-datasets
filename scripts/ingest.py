@@ -44,7 +44,7 @@ def main():
         columns = ["start_chrom", "start", "end_chrom", "end", "ref", "alt" ,"length", "type"]
         data = pd.DataFrame(variants, columns=columns)
 
-        # Check for duplicate entries
+        # Check for duplicate entries, to prevent penalizing the nodes when they have duplicate entries
         dups = data[data.duplicated(keep=False)]
         if not dups.empty:
             print("[WARNING] " + str(dups.shape[0]) + " duplicates found. Only keeping the first line of each duplicate entry. List of duplicate entries: ")

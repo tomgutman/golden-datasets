@@ -107,7 +107,7 @@ def main():
     truth['times_checked'] = 0
     sv_comp_list = []
     sv_fp_list = []
-    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'dup_truth']
+    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'dup_truth', 'index_test', 'index_truth']   #'index_test', 'index_truth'
     window = 1000
 
     # For each row in the test file:
@@ -124,34 +124,53 @@ def main():
             # Add matches to truth_matched_df to evaluate if we've seen them before
             # Find the best match and drop the other one
             best = None
-            for j, truth_match in enumerate(truth_matches.values.tolist()):
+            for j, truth_match in truth_matches.iterrows():
                 # Start processing singles
                 # Get the corresponding row from the dataframe to process below
-                results = calculate_characteristics(truth_matches.iloc[j], row, window)
-                #Compare the test variant (row) to every possible truth variant within the window. Then we will select the most appropiate one based on start site or overlapping rules...
+                results = calculate_characteristics(truth_match, row, window)
+                # Compare the test variant (row) to every possible truth variant within the window. Then we will select the most appropriate one base on start site or overlapping rules...
                 if not best:
-                    best = [j, truth_match, results]
+                    best = [j, truth_match.tolist(), results]
                 else:
                     #evaluate if this entry is better: DEFINITION: start site diff is smallest
                     if abs(results[3]) < abs(best[2][3]):
                         print("[DEBUG] NEW BEST RESULT")
-                        best = [j, truth_match, results]
-            sv_comp_list.append(best[2])
-            truth.loc[truth_matches.iloc[best[0]].name,'times_checked'] += 1 #UPDATE
+                        best = [j, truth_match.tolist(), results]
+            sv_comp_list.append(best[2] + [index, best[0]])
+            truth.loc[truth_matches.loc[best[0],:].name,'times_checked'] += 1 #UPDATE
             #print(truth_matched_df)
         else:
             #print("[DEBUG] No match found")
-            sv_fp_list.append(list(row))
+            sv_fp_list.append(list(row))    #TODO: integrate the index!!!
         #print(row)
         #print(matches)
 
     sv_comp_df = pd.DataFrame(sv_comp_list, columns=columns_sv_comp_list)
     sv_fp_df = pd.DataFrame(sv_fp_list, columns=list(node.columns))
+    # df_node, remove all rows that are in the FP dataframe
+    test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
 
     print(sv_comp_df)
+    print(sv_comp_df.shape)
     print(sv_fp_df)
+    print(sv_fp_df.shape)
+    print(test_comp_vars)
+    print(test_comp_vars.shape)
     print(sv_fn_df)
+    print(sv_fn_df.shape)
+    print(node)
+    print(node.shape)
+    print(truth)
+    print(truth.shape)
+
+    # Evaluate the comparison dataframe
+    sv_comp_df['tier1'] = 0
+    sv_comp_df['tier2'] = 0
+    sv_comp_df['tier3'] = 0
+
+    #sv_comp_df = evaluate_tier1(sv_comp_df)
+
 
     #TODO: get the correct TP value
     recall = sv_comp_df.shape[0] / (sv_comp_df.shape[0] + sv_fn_df.shape[0])
