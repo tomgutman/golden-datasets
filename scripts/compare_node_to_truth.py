@@ -54,14 +54,16 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
 
 
     print(comparison_df)
-    '''
-    TEST TIER
-    '''
-    calculate_performance(comparison_df.shape[0], false_negative_df.shape[0], false_positive_df.shape[0], "TEST")
+
+    calculate_performance(comparison_df, false_negative_df, false_positive_df)
 
 
-def calculate_performance(TP, FN, FP, tier):
-    #TODO: get the correct TP value
+def calculate_performance(TP, FN, FP):
+
+    for tier in (1,3):
+        print(tier)
+
+    '''
     recall = TP / (TP + FN)
     precision = TP / (TP + FP)
     F1 = 2 * (recall * precision) / (recall + precision)
@@ -70,6 +72,7 @@ def calculate_performance(TP, FN, FP, tier):
     print("Recall:\t" + str(round(recall,2)))
     print("Precision:\t" + str(round(precision,2)))
     print("F1-score:\t" + str(round(F1,2)))
+    '''
 
 
 
