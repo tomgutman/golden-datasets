@@ -17,6 +17,62 @@ inv_a <-VC_tab_formated[grepl("*]$",VC_tab_formated$ALT),]
       del_a$SV_TYPE <- "DEL"
 '''
 
+def calculate_results(comparison_df, false_negative_df, false_positive_df):
+    comparison_df = comparison_df.loc[comparison_df['dup_truth'] == False]
+    '''
+    TIER 1: Start pos within 200bp, Length ration within 10%, End pos within 200bp,
+    '''
+    def conditions_tier1(s):
+        if (s['diff_start_pos'] <= 200) and (s['diff_end_pos'] <= 200) and (abs(s['length_ratio']) >= 0.9):
+            return True
+        else:
+            return False
+    comparison_df['tier1'] = comparison_df.apply(conditions_tier1, axis=1)
+
+
+    '''
+    TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
+    '''
+    def conditions_tier2(s):
+        if (s['diff_start_pos'] <= 400) and (s['diff_end_pos'] <= 400) and (abs(s['length_ratio']) >= 0.8):
+            return True
+        else:
+            return False
+    comparison_df['tier2'] = comparison_df.apply(conditions_tier2, axis=1)
+
+
+    '''
+    TIER 3: Start pos within 600bp, Length ratio within 30%
+    '''
+
+    def conditions_tier3(s):
+        if (s['diff_start_pos'] <= 600) and (s['diff_end_pos'] <= 600) and (abs(s['length_ratio']) >= 0.7):
+            return True
+        else:
+            return False
+    comparison_df['tier3'] = comparison_df.apply(conditions_tier3, axis=1)
+
+
+    print(comparison_df)
+    '''
+    TEST TIER
+    '''
+    calculate_performance(comparison_df.shape[0], false_negative_df.shape[0], false_positive_df.shape[0], "TEST")
+
+
+def calculate_performance(TP, FN, FP, tier):
+    #TODO: get the correct TP value
+    recall = TP / (TP + FN)
+    precision = TP / (TP + FP)
+    F1 = 2 * (recall * precision) / (recall + precision)
+
+    print("Performance " + tier)
+    print("Recall:\t" + str(round(recall,2)))
+    print("Precision:\t" + str(round(precision,2)))
+    print("F1-score:\t" + str(round(F1,2)))
+
+
+
 def calculate_characteristics(truth, test, window):
     """Return a list that contains information about the comparison between truth and test.
 
@@ -147,22 +203,25 @@ def main():
 
     sv_comp_df = pd.DataFrame(sv_comp_list, columns=columns_sv_comp_list)
     sv_fp_df = pd.DataFrame(sv_fp_list, columns=list(node.columns))
-    # df_node, remove all rows that are in the FP dataframe
+    # df_node, remove all rows that are in the FP dataframe = test_comp_vars
+    #
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
 
-    print(sv_comp_df)
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(sv_comp_df)
     print(sv_comp_df.shape)
-    print(sv_fp_df)
-    print(sv_fp_df.shape)
-    print(test_comp_vars)
-    print(test_comp_vars.shape)
-    print(sv_fn_df)
-    print(sv_fn_df.shape)
+    #print(sv_fp_df)
+    #print(sv_fp_df.shape)
+    #print(test_comp_vars)
+    #print(test_comp_vars.shape)
+    #print(sv_fn_df)
+    #print(sv_fn_df.shape)
     print(node)
-    print(node.shape)
+    #print(node.shape)
     print(truth)
-    print(truth.shape)
+    #print(truth.shape)
+
 
     # Evaluate the comparison dataframe
     sv_comp_df['tier1'] = 0
@@ -171,15 +230,14 @@ def main():
 
     #sv_comp_df = evaluate_tier1(sv_comp_df)
 
+    #SET RULES FOR THE TIERS
+    '''
+    These rules just assign the value TRUE/FALSE to the 'tier' columns of the sv_comp_df
+    Later we can compute the metrics for all of the tiers
+    '''
+    calculate_results(sv_comp_df, sv_fn_df, sv_fp_df)
 
-    #TODO: get the correct TP value
-    recall = sv_comp_df.shape[0] / (sv_comp_df.shape[0] + sv_fn_df.shape[0])
-    precision = sv_comp_df.shape[0]/(sv_comp_df.shape[0] + sv_fp_df.shape[0])
-    f1 = 2*(recall * precision)/(recall + precision)
 
-    print("Recall:\t" + str(round(recall,2)))
-    print("Precision:\t" + str(round(precision,2)))
-    print("F1-score:\t" + str(round(f1,2)))
 
 if __name__ == "__main__":
     main()
