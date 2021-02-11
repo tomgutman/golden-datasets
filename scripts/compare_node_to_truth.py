@@ -19,60 +19,62 @@ inv_a <-VC_tab_formated[grepl("*]$",VC_tab_formated$ALT),]
 
 def calculate_results(comparison_df, false_negative_df, false_positive_df):
     comparison_df = comparison_df.loc[comparison_df['dup_truth'] == False]
+    comparison_df = comparison_df.copy(deep=True)
     '''
     TIER 1: Start pos within 200bp, Length ration within 10%, End pos within 200bp,
     '''
     def conditions_tier1(s):
-        if (s['diff_start_pos'] <= 200) and (s['diff_end_pos'] <= 200) and (abs(s['length_ratio']) >= 0.9):
+        if (s['diff_start_pos'] <= 20) and (s['diff_end_pos'] <= 20) and (abs(s['length_ratio']) >= 0.9):
             return True
         else:
             return False
     comparison_df['tier1'] = comparison_df.apply(conditions_tier1, axis=1)
 
-
     '''
     TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
     '''
     def conditions_tier2(s):
-        if (s['diff_start_pos'] <= 400) and (s['diff_end_pos'] <= 400) and (abs(s['length_ratio']) >= 0.8):
+        if (s['diff_start_pos'] <= 40) and (s['diff_end_pos'] <= 40) and (abs(s['length_ratio']) >= 0.8):
             return True
         else:
             return False
     comparison_df['tier2'] = comparison_df.apply(conditions_tier2, axis=1)
 
-
     '''
     TIER 3: Start pos within 600bp, Length ratio within 30%
     '''
-
     def conditions_tier3(s):
-        if (s['diff_start_pos'] <= 600) and (s['diff_end_pos'] <= 600) and (abs(s['length_ratio']) >= 0.7):
+        if (s['diff_start_pos'] <= 60) and (s['diff_end_pos'] <= 60) and (abs(s['length_ratio']) >= 0.7):
             return True
         else:
             return False
     comparison_df['tier3'] = comparison_df.apply(conditions_tier3, axis=1)
 
-
-    print(comparison_df)
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(comparison_df)
 
     calculate_performance(comparison_df, false_negative_df, false_positive_df)
 
 
-def calculate_performance(TP, FN, FP):
+def calculate_performance(comp_df, FN_df, FP_df):
 
-    for tier in (1,3):
-        print(tier)
+    for tier in ['tier1', 'tier2', 'tier3']:
+        TP = comp_df.loc[comp_df[tier] == True].shape[0]
+        FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
+        FP_orig = FP_df.shape[0]
+        FN = FN_df.shape[0]
 
-    '''
-    recall = TP / (TP + FN)
-    precision = TP / (TP + FP)
-    F1 = 2 * (recall * precision) / (recall + precision)
+        recall = TP / (TP + FN)
+        precision = TP / (TP + FP_new + FP_orig)
+        F1 = 2 * (recall * precision) / (recall + precision)
 
-    print("Performance " + tier)
-    print("Recall:\t" + str(round(recall,2)))
-    print("Precision:\t" + str(round(precision,2)))
-    print("F1-score:\t" + str(round(F1,2)))
-    '''
+        print("Performance " + tier)
+        print("\tTP " + str(TP))
+        print("\tFP " + str(FP_orig + FP_new) + "\tFP_orig(" + str(FP_orig) + ") + FP_new(" + str(FP_new) + ")")
+        print("\tFN " + str(FN))
+        print("\tRecall:\t" + str(round(recall,2)))
+        print("\tPrecision:\t" + str(round(precision,2)))
+        print("\tF1-score:\t" + str(round(F1,2)))
 
 
 
