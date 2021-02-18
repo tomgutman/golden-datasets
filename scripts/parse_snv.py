@@ -15,6 +15,7 @@ def parse(vcf_reader, samplename):
 
     for record in vcf_reader:
         #print(record.var_type)
+        print(record)
         nr_of_vars += 1
 
         # Only use 'PASS' calls
@@ -35,7 +36,7 @@ def parse(vcf_reader, samplename):
                     sample = str(record.samples[0])
                     print("[INFO] Using only sample in the VCF: " + sample)
 
-            chrom = record.CHROM
+            chrom = record.CHROM.replace("CHR", "").replace("chr", "")
             pos = record.POS
             ref = record.REF
             alt = record.ALT[0]
