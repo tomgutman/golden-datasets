@@ -133,7 +133,10 @@ def calculate_performance(comp_df, FN_df, FP_df):
 
         recall = TP / (TP + FN)
         precision = TP / (TP + FP_new + FP_orig)
-        F1 = 2 * (recall * precision) / (recall + precision)
+        if (recall + precision) == 0:
+            F1 = 0
+        else:
+            F1 = 2 * (recall * precision) / (recall + precision)
 
         print("Performance " + tier)
         print("\tTP " + str(TP))
