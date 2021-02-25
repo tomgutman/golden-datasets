@@ -17,13 +17,34 @@ inv_a <-VC_tab_formated[grepl("*]$",VC_tab_formated$ALT),]
       del_a$SV_TYPE <- "DEL"
 '''
 
+def deal_with_dup_truths(df, truth, test):
+    dup_rows = df[df.duplicated(subset="index_truth", keep=False)]
+    print(dup_rows)
+    # Get distinct index_truth indexes...
+    dist_index_truth = list(set(dup_rows["index_truth"]))
+    for truth_id in dist_index_truth:
+        test_matches = dup_rows[dup_rows["index_truth"] == truth_id]
+        print(test_matches)
+        match_test_ids = test_matches["index_test"].tolist()
+        print(match_test_ids)
+        #Now take the test entries and compare with truth
+        truth_item = truth.iloc[truth_id]
+        print(truth_item)
+        test_items = test.iloc[match_test_ids]
+        print(test_items)
+        #for index, row in test_items.iterrows():
+        #TODO: Get differences between the start and end position and choose the smallest distance as match
+
+    #return(df, fp)
+    return(df)
+
 def calculate_results(comparison_df, false_negative_df, false_positive_df):
     comparison_df = comparison_df.loc[comparison_df['dup_truth'] == False]
+    #TODO: How to deal with dup_truths?
     comparison_df = comparison_df.copy(deep=True)
     false_negative_df = false_negative_df.copy(deep=True)
     false_positive_df = false_positive_df.copy(deep=True)
-    #TODO: what happens with the NA lengths?
-    #TODO: where do we want to pile the variants without lengths?
+
     '''
     TIER 0: Start pos within 200bp, Length ration within 20%, End pos within 200bp,
     '''
@@ -120,7 +141,6 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
     '''
     def conditions_tier4(s):
         pos_thres = 200
-        print(s)
         if 'length_ratio' in s.index:
             if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (pd.isna(s['length_ratio'])):
                 return True
@@ -138,10 +158,10 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
     false_negative_df['tier4'] = false_negative_df.apply(conditions_tier4, axis=1)
     false_positive_df['tier4'] = false_positive_df.apply(conditions_tier4, axis=1)
 
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        print(comparison_df)
-        print(false_positive_df)
-        print(false_negative_df)
+    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    #    print(comparison_df)
+    #    print(false_positive_df)
+    #    print(false_negative_df)
 
     calculate_performance(comparison_df, false_negative_df, false_positive_df)
 
@@ -167,7 +187,6 @@ def calculate_performance(comp_df, FN_df, FP_df):
         print("\tRecall:\t" + str(round(recall,2)))
         print("\tPrecision:\t" + str(round(precision,2)))
         print("\tF1-score:\t" + str(round(F1,2)))
-
 
 
 def calculate_characteristics(truth, test, window):
@@ -297,7 +316,6 @@ def main():
             sv_fp_list.append(list(row))
         #print(row)
         #print(matches)
-
     sv_comp_df = pd.DataFrame(sv_comp_list, columns=columns_sv_comp_list)
     sv_fp_df = pd.DataFrame(sv_fp_list, columns=list(node.columns))
     # df_node, remove all rows that are in the FP dataframe = test_comp_vars
@@ -305,8 +323,8 @@ def main():
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
 
-    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-    #    print(sv_comp_df)
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(sv_comp_df)
     #print(sv_comp_df.shape)
     #print(sv_fp_df)
     #print(sv_fp_df.shape)
@@ -320,6 +338,8 @@ def main():
     #print(truth.shape)
 
     #sv_comp_df = evaluate_tier1(sv_comp_df)
+
+    sv_comp_df = deal_with_dup_truths(sv_comp_df, truth, node)
 
     #SET RULES FOR THE TIERS
     '''
