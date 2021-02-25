@@ -115,6 +115,29 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
     false_negative_df['tier3'] = false_negative_df.apply(conditions_tier3, axis=1)
     false_positive_df['tier3'] = false_positive_df.apply(conditions_tier3, axis=1)
 
+    '''
+    TIER 4: All NA lengths
+    '''
+    def conditions_tier4(s):
+        pos_thres = 200
+        print(s)
+        if 'length_ratio' in s.index:
+            if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (pd.isna(s['length_ratio'])):
+                return True
+            else:
+                return False
+        elif 'length' in s.index:
+            if pd.isna(s['length']):
+                return True
+            else:
+                return False
+        else:
+            sys.exit("[ERROR] Cannot find columns in dataframe. Exiting.")
+
+    comparison_df['tier4'] = comparison_df.apply(conditions_tier4, axis=1)
+    false_negative_df['tier4'] = false_negative_df.apply(conditions_tier4, axis=1)
+    false_positive_df['tier4'] = false_positive_df.apply(conditions_tier4, axis=1)
+
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):
         print(comparison_df)
         print(false_positive_df)
@@ -122,10 +145,9 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
 
     calculate_performance(comparison_df, false_negative_df, false_positive_df)
 
-
 def calculate_performance(comp_df, FN_df, FP_df):
     #TODO: check the logic of the output of this method
-    for tier in ['tier0', 'tier1', 'tier2', 'tier3']:
+    for tier in ['tier0', 'tier1', 'tier2', 'tier3', 'tier4']:
         TP = comp_df.loc[comp_df[tier] == True].shape[0]
         FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
         FP_orig = FP_df.loc[FP_df[tier] == True].shape[0]
