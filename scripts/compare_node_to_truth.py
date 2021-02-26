@@ -20,23 +20,30 @@ inv_a <-VC_tab_formated[grepl("*]$",VC_tab_formated$ALT),]
 def deal_with_dup_truths(df, truth, test):
     dup_rows = df[df.duplicated(subset="index_truth", keep=False)]
     print(dup_rows)
+    fp = []
     # Get distinct index_truth indexes...
     dist_index_truth = list(set(dup_rows["index_truth"]))
     for truth_id in dist_index_truth:
-        test_matches = dup_rows[dup_rows["index_truth"] == truth_id]
-        print(test_matches)
+        test_matches = dup_rows.loc[dup_rows["index_truth"] == truth_id]
         match_test_ids = test_matches["index_test"].tolist()
-        print(match_test_ids)
         #Now take the test entries and compare with truth
         truth_item = truth.iloc[truth_id]
-        print(truth_item)
         test_items = test.iloc[match_test_ids]
-        print(test_items)
-        #for index, row in test_items.iterrows():
-        #TODO: Get differences between the start and end position and choose the smallest distance as match
+        for index, row in test_items.iterrows():
+            dist_start = abs(int(truth_item['start']) - int(row['start']))
+            dist_end = abs(int(truth_item['end']) - int(row['end']))
+            test_items.loc[index, 'distance'] = dist_start + dist_end
+        # The below line shows the line that should stay
+        #print(test_items.nsmallest(1, 'distance'))
+        fp_index = test_items.nlargest(test_items.shape[0] - 1, 'distance').index.values.tolist()
+        # Remove the fp indices from df
+        df = df[~df['index_test'].isin(fp_index)]
+        fp.extend(fp_index)
+    print("These test items should be removed from comparison dataframe, and added to fp")
+    print(fp)
+    print(df)
+    return(df, fp)
 
-    #return(df, fp)
-    return(df)
 
 def calculate_results(comparison_df, false_negative_df, false_positive_df):
     comparison_df = comparison_df.loc[comparison_df['dup_truth'] == False]
@@ -339,7 +346,11 @@ def main():
 
     #sv_comp_df = evaluate_tier1(sv_comp_df)
 
-    sv_comp_df = deal_with_dup_truths(sv_comp_df, truth, node)
+    # Deal with the duplicate matches to TRUTH
+    sv_comp_df, fp = deal_with_dup_truths(sv_comp_df, truth, node)
+    # Remove the duplicates with largest distance and add them to the false positive list
+    to_add_to_fp = node.iloc[fp]
+    sv_fp_df = pd.concat([sv_fp_df, to_add_to_fp], sort=False).sort_index()
 
     #SET RULES FOR THE TIERS
     '''
