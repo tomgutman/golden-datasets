@@ -4,6 +4,7 @@ import vcf
 import pandas as pd
 import parse_sv_vcf
 import parse_sv_tsv
+import numpy as np
 
 
 def main():
@@ -43,13 +44,21 @@ def main():
     if variants:
         columns = ["start_chrom", "start", "end_chrom", "end", "ref", "alt" ,"length", "type"]
         data = pd.DataFrame(variants, columns=columns)
-
+        data["length"] = pd.to_numeric(data["length"])
+        print(data.dtypes)
         
 
         #Make all values in length positive (Curie had all DEL values in negative, and BND within the same chr)
-        data['length']=data['length'].abs()
-        
+        for index, row in data.iterrows():
+            if row['length'] ==None:
+                pass
+            elif row['length'] < 0:
+                print("AAA")
+                data['length'] = data['length'].replace(row['length'], abs(int(row['length'])))  
+
+   #elif isinstance(row['length'], (np.floating, float, str)):
         #Delete length values for BND, we can evaluate this later on
+        
         data.loc[data['type'] == 'BND', 'length'] = ''
         print("[INFO] All lengths are considered in their absolute value")
         print("[INFO] Breakends are considered to have no length")
