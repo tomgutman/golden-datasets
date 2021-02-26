@@ -1,4 +1,5 @@
 import sys
+import pandas as pd
 
 def parse(vcf_reader):
     variants = []
@@ -147,6 +148,8 @@ def parse(vcf_reader):
         sv_type = sv_type.replace("translocation", "TRA")
         sv_type = sv_type.replace("insertion", "INS")
         sv_type = sv_type.replace("duplication", "DUP")
+    
+        variants["length"] = pd.to_numeric(length["length"])
     
         #Gather variant info
         variants.append([start_chrom, start, end_chrom, end, ref, alt, length, sv_type])
