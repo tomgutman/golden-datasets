@@ -8,7 +8,7 @@ def parse(vcf_reader, samplename):
 
     variants_snv = []
     variants_indel = []
-    variants_sv = []
+    #variants_sv = []
     sample = None
     nr_of_vars = 0
     nr_filtered = 0
@@ -42,12 +42,12 @@ def parse(vcf_reader, samplename):
             alt = record.ALT[0]
 
             if record.var_type == "indel":
-                len_ref = len(ref)
-                len_alt = len(alt)
-                if len_ref > 50 or len_alt > 50:
-                    variants_sv.append([chrom, pos, ref, alt,len_ref,len_alt])
-                else:
-                    variants_indel.append([chrom, pos, ref, alt])
+                #len_ref = len(ref)
+                #len_alt = len(alt)
+                #if len_ref > 50 or len_alt > 50:
+                    #variants_sv.append([chrom, pos, ref, alt,len_ref,len_alt])
+                #else:
+                variants_indel.append([chrom, pos, ref, alt])
                 #print("indel: {} {} {}".format(pos,ref,alt))
                 #print(len(ref),len(alt))
 
@@ -65,4 +65,5 @@ def parse(vcf_reader, samplename):
 
     #print(variants)
 
-    return(variants_snv, variants_indel, variants_sv, nr_of_vars, nr_filtered)
+    #return(variants_snv, variants_indel, variants_sv, nr_of_vars, nr_filtered)
+    return(variants_snv, variants_indel, nr_of_vars, nr_filtered)
