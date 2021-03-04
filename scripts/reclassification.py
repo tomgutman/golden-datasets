@@ -52,19 +52,23 @@ def main():
         #df_indels["length"] = df_indels.to_numeric(df_indels["length"])
         #df_sv["length"] = df_sv.to_numeric(df_sv["length"])
 
-        # Below is not working (yet)
         df_indels['ref_len'] = df_indels['ref'].str.len()
         df_indels['alt_len'] = df_indels['alt'].str.len()
         df_indels['length'] = df_indels[['ref_len', 'alt_len']].max(axis=1)
         df_indels = df_indels.drop(['ref_len', 'alt_len'], axis=1)
-        print(df_indels)
 
-        indels_longer_than_50 =  df_indels['length']>=50
-        sv_smaller_than_50 =  df_sv['length']<50
-    
-        df_indels = df_indels[df_indels.length < 50]
-        df_sv = df_sv[df_sv.length >= 50]
-    
+        indels_longer_than_50 =  df_indels.loc[(df_indels['length'] >= 50) | (pd.isna(df_indels['length']))] # These should be moved to SV
+        sv_smaller_than_50 =  df_sv.loc[(df_sv['length'] < 50) | (pd.isna(df_sv['length']))] # These should be moved to indels/snv
+        print(indels_longer_than_50)
+        print(sv_smaller_than_50)
+
+        df_indels_true = df_indels.loc[df_indels['length'] < 50]
+        df_sv_true = df_sv.loc[df_sv['length'] >= 50]
+
+        print(df_indels_true)
+        print(df_sv_true)
+
+        # Here we first have to realign the columns
         final_indels = df_indels.append(sv_smaller_than_50, ignore_index=True)
         final_svs = df_sv.append(indels_longer_than_50, ignore_index=True)
     
