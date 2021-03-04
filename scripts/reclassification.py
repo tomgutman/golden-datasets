@@ -53,7 +53,11 @@ def main():
         #df_sv["length"] = df_sv.to_numeric(df_sv["length"])
 
         # Below is not working (yet)
-        df_indels['length'] = max(df_indels['ref'].values, df_indels['alt'].values)
+        df_indels['ref_len'] = df_indels['ref'].str.len()
+        df_indels['alt_len'] = df_indels['alt'].str.len()
+        df_indels['length'] = df_indels[['ref_len', 'alt_len']].max(axis=1)
+        df_indels = df_indels.drop(['ref_len', 'alt_len'], axis=1)
+        print(df_indels)
 
         indels_longer_than_50 =  df_indels['length']>=50
         sv_smaller_than_50 =  df_sv['length']<50
