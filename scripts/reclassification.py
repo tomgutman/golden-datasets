@@ -47,8 +47,9 @@ def main():
     print(df_indels)
     print(df_sv)
 
+
     if len(df_indels.index)>0 and len(df_sv.index)>0 : 
-    
+        threshold = 50
         #df_indels["length"] = df_indels.to_numeric(df_indels["length"])
         #df_sv["length"] = df_sv.to_numeric(df_sv["length"])
 
@@ -57,13 +58,13 @@ def main():
         df_indels['length'] = df_indels[['ref_len', 'alt_len']].max(axis=1)
         df_indels = df_indels.drop(['ref_len', 'alt_len'], axis=1)
 
-        indels_longer_than_50 =  df_indels.loc[(df_indels['length'] >= 50) | (pd.isna(df_indels['length']))] # These should be moved to SV
-        sv_smaller_than_50 =  df_sv.loc[(df_sv['length'] < 50) | (pd.isna(df_sv['length']))] # These should be moved to indels/snv
+        indels_longer_than_50 =  df_indels.loc[(df_indels['length'] >= threshold) | (pd.isna(df_indels['length']))] # These should be moved to SV
+        sv_smaller_than_50 =  df_sv.loc[(df_sv['length'] < threshold) | (pd.isna(df_sv['length']))] # These should be moved to indels/snv
         print(indels_longer_than_50)
         print(sv_smaller_than_50)
 
-        df_indels_true = df_indels.loc[df_indels['length'] < 50]
-        df_sv_true = df_sv.loc[df_sv['length'] >= 50]
+        df_indels_true = df_indels.loc[df_indels['length'] < threshold]
+        df_sv_true = df_sv.loc[df_sv['length'] >= threshold]
 
         print(df_indels_true)
         print(df_sv_true)
