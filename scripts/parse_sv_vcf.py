@@ -23,7 +23,6 @@ def parse(vcf_reader, samplename):
     # Start reading in records and add to dataframe
     for record in vcf_reader:
         nr_of_vars += 1
-
         # Only use 'PASS' calls
         if record.FILTER:
 
@@ -66,7 +65,8 @@ def parse(vcf_reader, samplename):
 
             # Get end coordinate from file if registered in INFO field
             if 'END' in record.INFO:
-                end = record.sv_end + 1
+                end = record.sv_end
+                end_chrom = start_chrom
             else:
                 # Parse end from ALT
                 end_pos = str(record.ALT[0]).replace("CHR", "").replace("chr", "").replace("A", "").replace("G", "").replace("T", "").replace("C", "").replace("N", "").replace("]", "").replace("[", "")
