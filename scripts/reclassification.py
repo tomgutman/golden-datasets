@@ -1,7 +1,6 @@
 import sys
 import argparse
 import pandas as pd
-import numpy as np
 
 #TO DO
 #Make sure both indel and SV file are normalized in the same way beforehand
@@ -30,64 +29,60 @@ From SV to INDEL/SNV
 4: alt = alt
 '''
 
-#TERMINAR ESTO CON LOS DUMMYS QUE HE EHCHO
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("df_indels", help="Path to indels dataframe file")
     parser.add_argument("df_sv", help="Path to SV dataframe file")
     parser.add_argument("new_df_indels", help="Path to new indels dataframe file variants <50 bp")
-    parser.add_argument("new_df_sv", help="Path to new sv dataframe file variants >50 bp")   
+    parser.add_argument("new_df_sv", help="Path to new sv dataframe file variants >=50 bp")   
 
     args = parser.parse_args()
    
-    print("[INFO] ### Evaluating variants <50bp as indels and variants >=50bp as structural variants")
+    print("[INFO] ### Reclassificating variants <50bp as indels and variants >=50bp as structural variants")
 
 
-    df_indels = pd.read_csv(args.df_indels, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': str, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
-    df_sv = pd.read_csv(args.df_sv, index_col=0, dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': str, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
-    print(df_indels)
-    print(df_sv)
+    df_indels = pd.read_csv(args.df_indels, dtype={'chrom': str, 'pos':int, 'ref':str, 'alt':str, })
+    df_sv = pd.read_csv(args.df_sv, index_col=0,dtype={'start_chrom': str, 'start': int, 'end_chrom': str, 'end': int, 'ref': str, 'alt': str, 'length': 'Int32', 'type': str})
 
 
-    if len(df_indels.index)>0 and len(df_sv.index)>0 : 
-        threshold = 50
-        #df_indels["length"] = df_indels.to_numeric(df_indels["length"])
-        #df_sv["length"] = df_sv.to_numeric(df_sv["length"])
+    if len(df_indels.index)>0 and len(df_sv.index)>0 : #If files are not empy
 
-        df_indels['ref_len'] = df_indels['ref'].str.len()
-        df_indels['alt_len'] = df_indels['alt'].str.len()
-        df_indels['length'] = df_indels[['ref_len', 'alt_len']].max(axis=1)
+        for index, row in df_indels.iterrows(): #Add required columns to go from indel format to SV format
+            df_indels.at[index,'length'] = max(len(df_indels.at[index,'ref']), len(df_indels.at[index,'alt']))
+            df_indels.at[index,'type'] = 'DEL' if len(df_indels.at[index,'ref']) > len(df_indels.at[index,'alt']) else 'INS'
+        
 
-        indels_longer_than_50 =  df_indels.loc[(df_indels['length'] >= threshold) | (pd.isna(df_indels['length']))] # These should be moved to SV
-        sv_smaller_than_50 =  df_sv.loc[(df_sv['length'] < threshold) | (pd.isna(df_sv['length']))] # These should be moved to indels/snv
-        if isinstance(indels_longer_than_50, pd.DataFrame):
-            print("Is dataframe")
-            indels_longer_than_50 = indels_longer_than_50.rename(columns={'chrom': 'start_chrom', 'pos': 'start'})
-        else:
-            print("Is series")
-            indels_longer_than_50 = indels_longer_than_50.rename({'chrom': 'start_chrom', 'pos': 'start'})
-        # type + end_chrom + end
-        indels_longer_than_50['type'] = np.where(indels_longer_than_50['ref_len'] == indels_longer_than_50['alt_len'], 'delins', np.where(indels_longer_than_50['alt_len'] > indels_longer_than_50['ref_len'], 'INS', 'DEL'))
-        indels_longer_than_50['end_chrom'] = indels_longer_than_50['start_chrom']
+        df_indels =  df_indels.astype( {'length' : int})
+        df_sv = df_sv.astype({'length': int},errors='ignore')
+
+    
+    
+        indels_longer_than_50 =  df_indels[df_indels['length']>=50]
+        indels_smaller_than_50 = df_indels.append(indels_longer_than_50).drop_duplicates(keep = False)
+        
+        indels_longer_than_50 = indels_longer_than_50.rename(columns={'chrom':'start_chrom','pos':'start'})             
+        indels_longer_than_50.insert(loc=2, column='end_chrom', value=indels_longer_than_50['start_chrom'])
+        indels_longer_than_50.insert(loc=3, column='end', value=None  )
         indels_longer_than_50['end'] = indels_longer_than_50['start'] + indels_longer_than_50['length']
-        print(indels_longer_than_50)
-        print(list(indels_longer_than_50))
-        print(sv_smaller_than_50)
+        indels_longer_than_50 = indels_longer_than_50.astype({"end": int})
+        
 
-        #Next step: sort the indels_longer_than_50 into the right order
-        #Next step 2: get the correct columns of sv_smaller_than_50 df
-
-        df_indels_true = df_indels.loc[df_indels['length'] < threshold]
-        df_sv_true = df_sv.loc[df_sv['length'] >= threshold]
-
-        df_indels = df_indels.drop(['ref_len', 'alt_len'], axis=1)
-
-        print(df_indels_true)
-        print(df_sv_true)
-
-        # Here we first have to realign the columns
-        final_indels = df_indels.append(sv_smaller_than_50, ignore_index=True)
-        final_svs = df_sv.append(indels_longer_than_50, ignore_index=True)
+        sv_longer_than_50_and_BND = df_sv.loc[(df_sv['length']>= 50) | (df_sv.length.isnull()), :]
+       
+        sv_smaller_than_50 = df_sv.append(sv_longer_than_50_and_BND).drop_duplicates(keep = False) 
+       
+        
+        final_svs = sv_longer_than_50_and_BND.append(indels_longer_than_50, ignore_index=True)
+        
+        #Rename columns and drop some of them to go from SV format to indel dataframe format
+        sv_smaller_than_50 = sv_smaller_than_50.rename(columns={"start_chrom": "chrom", "start": "pos"})
+        sv_smaller_than_50 = sv_smaller_than_50.drop(['end_chrom','end'], axis=1)
+        
+        final_indels = indels_smaller_than_50.append(sv_smaller_than_50,ignore_index=True)
+        final_indels = final_indels.drop(['length', 'type'], axis=1)
+    
+        
     
         if args.new_df_indels and args.new_df_sv:
                 final_indels.to_csv(args.new_df_indels)
