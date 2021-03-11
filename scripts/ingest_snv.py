@@ -6,12 +6,12 @@ import parse_snv
 
 def main():
     """
-    Main function to parse SNV vcf file and export it as a dataframe in the terminal or as a standalone csv file
+    Main function to parse SNV & Indel vcf files and export an indel dataframe & filtered vcf without indels bigger thant 50bp.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("vcf", help="Path to SNV vcf file")
     parser.add_argument("-samplename", help="Sample name if multisampleVCF")
-    parser.add_argument("-outputfile", help="If dataframe should be stored")
+    parser.add_argument("-outputfile", help="If dataframe  & filtered vcf should be stored")
 
     args = parser.parse_args()
 
@@ -24,24 +24,29 @@ def main():
         vcf_reader = vcf.Reader(filename=args.vcf)
     elif args.vcf[-4:] == ".vcf":
         vcf_reader = vcf.Reader(open(args.vcf, 'r'))
+
     else:
         sys.exit("[ERROR] Do not recognize type of input vcf " + args.vcf + ". Exiting.")
 
     # Input file type is VCF. Start parsing.
-    variants_snv, variants_indel, nr_of_vars, nr_filtered = parse_snv.parse(vcf_reader, args.samplename)
+    vcf_writer = vcf.Writer(open(args.outputfile + ".filtered.vcf", 'w'), vcf_reader)
+
+    vcf_writer, variants_snv, variants_indel, nr_of_vars, nr_filtered = parse_snv.parse(vcf_reader, vcf_writer, args.samplename)
+
+    vcf_writer.flush()
 
     # Create dataframe from all variant data
     if variants_snv or variants_indel:
-        if variants_snv:
-            columns = ["chrom", "pos", "ref", "alt"]
-            data_snv = pd.DataFrame(variants_snv, columns=columns)
-            print("\n[INFO] Dataframe for SNV variants")
-            print(data_snv)
-            if args.outputfile:
-                data_snv.to_csv(args.outputfile + "_snv.csv",index=False)
-        else:
-            print("\n[INFO] Dataframe for SNV variants")
-            print("Empty Dataframe ")
+        # if variants_snv:
+        #     columns = ["chrom", "pos", "ref", "alt"]
+        #     data_snv = pd.DataFrame(variants_snv, columns=columns)
+        #     print("\n[INFO] Dataframe for SNV variants")
+        #     print(data_snv)
+        #     if args.outputfile:
+        #         data_snv.to_csv(args.outputfile + "_snv.csv",index=False)
+        # else:
+        #     print("\n[INFO] Dataframe for SNV variants")
+        #     print("Empty Dataframe ")
         if variants_indel:
             columns = ["chrom", "pos", "ref", "alt"]
             data_indel = pd.DataFrame(variants_indel, columns=columns)
