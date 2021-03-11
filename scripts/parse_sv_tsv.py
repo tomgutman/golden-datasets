@@ -97,7 +97,7 @@ def parse(vcf_reader):
                 end = int(start) +1
             ref = line[header.index('ref')]
             alt = None
-            length = line[header.index('size')]
+            length = int(line[header.index('size')])
             if length in [0, "0"]:
                 length = None #Only for SV involving different chr.. maybe use sth more specific.
     
@@ -149,7 +149,7 @@ def parse(vcf_reader):
         sv_type = sv_type.replace("insertion", "INS")
         sv_type = sv_type.replace("duplication", "DUP")
     
-        variants["length"] = pd.to_numeric(length["length"])
+        #variants["length"] = pd.to_numeric(variants["length"])
     
         #Gather variant info
         variants.append([start_chrom, start, end_chrom, end, ref, alt, length, sv_type])
