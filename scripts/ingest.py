@@ -29,6 +29,7 @@ def main():
     else:
         sys.exit("[ERROR] Do not recognize type of input vcf " + args.vcf + ". Exiting.")
 
+    #todo: check if sorted
 
     if hasattr(vcf_reader, 'metadata'):
         # Input file type is VCF. Start parsing.
