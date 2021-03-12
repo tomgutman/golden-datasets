@@ -29,7 +29,6 @@ def main():
     else:
         sys.exit("[ERROR] Do not recognize type of input vcf " + args.vcf + ". Exiting.")
 
-
     if hasattr(vcf_reader, 'metadata'):
         # Input file type is VCF. Start parsing.
         print("[INFO] File format: VCF file")
@@ -45,7 +44,7 @@ def main():
         columns = ["start_chrom", "start", "end_chrom", "end", "ref", "alt" ,"length", "type"]
         data = pd.DataFrame(variants, columns=columns)
         data["length"] = pd.to_numeric(data["length"])
-        print(data.dtypes)
+        #print(data.dtypes)
         
 
         #Make all values in length positive (Curie had all DEL values in negative, and BND within the same chr)
@@ -53,7 +52,7 @@ def main():
             if row['length'] ==None:
                 pass
             elif row['length'] < 0:
-                print("AAA")
+                #print("AAA")
                 data['length'] = data['length'].replace(row['length'], abs(int(row['length'])))  
 
    #elif isinstance(row['length'], (np.floating, float, str)):
@@ -73,7 +72,7 @@ def main():
             print("[WARNING] " + str(dups.shape[0]) + " duplicates found. Only keeping the first line of each duplicate entry. List of duplicate entries: ")
             print(dups)
             data = data.drop_duplicates(keep='first').reset_index(drop=True)   #Only keeping first of the duplicate rows
-        print(data)
+        #print(data)
         
        
         '''
@@ -100,14 +99,6 @@ def main():
 
     else:
         sys.exit("No data parsed, please check your input data.")
-
-    '''
-    dummy_data = [[1, 100, 'X', 200, 'C', "[[CHRX:144760323[C]", 100, "BND"],
-                  [3, 5000, 'X', 10000, 'G', "[G]CHRX:153909144]]", 5000, "BND"],
-                  [5, 20, 5, 200, 'G', "[<DEL>]", 90, "DEL"]]
-    dummy_df = pd.DataFrame(dummy_data, columns=columns)
-    print(dummy_df)
-    '''
 
     # Todo: what about fusions?
 
