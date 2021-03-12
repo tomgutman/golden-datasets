@@ -171,10 +171,11 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
     #    print(false_positive_df)
     #    print(false_negative_df)
 
-    calculate_performance(comparison_df, false_negative_df, false_positive_df)
+    return(calculate_performance(comparison_df, false_negative_df, false_positive_df))
 
 def calculate_performance(comp_df, FN_df, FP_df):
     #TODO: check the logic of the output of this method
+    results = [["TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score"]]
     for tier in ['tier0', 'tier1', 'tier2', 'tier3', 'tier4']:
         TP = comp_df.loc[comp_df[tier] == True].shape[0]
         FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
@@ -195,6 +196,10 @@ def calculate_performance(comp_df, FN_df, FP_df):
         print("\tRecall:\t" + str(round(recall,2)))
         print("\tPrecision:\t" + str(round(precision,2)))
         print("\tF1-score:\t" + str(round(F1,2)))
+
+        #TODO: include match_type column
+        results.append([tier, TP, FP_orig + FP_new, FP_orig, FP_new, FN, round(recall,2), round(precision,2), round(F1,2)])
+    return(results)
 
 
 def calculate_characteristics(truth, test, window):
@@ -331,8 +336,8 @@ def main():
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
 
-    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        #print(sv_comp_df)
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(sv_comp_df)
     #print(sv_comp_df.shape)
     #print(sv_fp_df)
     #print(sv_fp_df.shape)
@@ -358,8 +363,17 @@ def main():
     These rules just assign the value TRUE/FALSE to the 'tier' columns of the sv_comp_df
     Later we can compute the metrics for all of the tiers
     '''
-    calculate_results(sv_comp_df, sv_fn_df, sv_fp_df)
+    results = calculate_results(sv_comp_df, sv_fn_df, sv_fp_df)
 
+    if args.metrics:
+        #Save to file
+        out = open(args.metrics, 'w')
+        for tier in results:
+            out.write("\t".join(str(x) for x in tier))
+        out.close()
+    else:
+        for tier in results:
+            print("\t".join(str(x) for x in tier))
 
 
 if __name__ == "__main__":
