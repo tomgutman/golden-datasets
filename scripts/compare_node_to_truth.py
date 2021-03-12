@@ -330,8 +330,8 @@ def main():
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
 
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        print(sv_comp_df)
+    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        #print(sv_comp_df)
     #print(sv_comp_df.shape)
     #print(sv_fp_df)
     #print(sv_fp_df.shape)
