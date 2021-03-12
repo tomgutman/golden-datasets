@@ -89,8 +89,14 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         else:
             sys.exit("[ERROR] Cannot find columns in dataframe. Exiting.")
     comparison_df['tier1'] = comparison_df.apply(conditions_tier1, axis=1)
-    false_negative_df['tier1'] = false_negative_df.apply(conditions_tier1, axis=1)
-    false_positive_df['tier1'] = false_positive_df.apply(conditions_tier1, axis=1)
+    if not false_negative_df.empty:
+        false_negative_df['tier1'] = false_negative_df.apply(conditions_tier1, axis=1)
+    else:
+        false_negative_df['tier1'] = None
+    if not false_positive_df.empty:
+        false_positive_df['tier1'] = false_positive_df.apply(conditions_tier1, axis=1)
+    else:
+        false_positive_df['tier1'] = None
 
     '''
     TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
@@ -115,8 +121,14 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         else:
             sys.exit("[ERROR] Cannot find columns in dataframe. Exiting.")
     comparison_df['tier2'] = comparison_df.apply(conditions_tier2, axis=1)
-    false_negative_df['tier2'] = false_negative_df.apply(conditions_tier2, axis=1)
-    false_positive_df['tier2'] = false_positive_df.apply(conditions_tier2, axis=1)
+    if not false_negative_df.empty:
+        false_negative_df['tier2'] = false_negative_df.apply(conditions_tier2, axis=1)
+    else:
+        false_negative_df['tier2'] = None
+    if not false_positive_df.empty:
+        false_positive_df['tier2'] = false_positive_df.apply(conditions_tier2, axis=1)
+    else:
+        false_positive_df['tier2'] = None
 
     '''
     TIER 3: Start pos within 600bp, Length ratio within 30%
@@ -141,8 +153,14 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         else:
             sys.exit("[ERROR] Cannot find columns in dataframe. Exiting.")
     comparison_df['tier3'] = comparison_df.apply(conditions_tier3, axis=1)
-    false_negative_df['tier3'] = false_negative_df.apply(conditions_tier3, axis=1)
-    false_positive_df['tier3'] = false_positive_df.apply(conditions_tier3, axis=1)
+    if not false_negative_df.empty:
+        false_negative_df['tier3'] = false_negative_df.apply(conditions_tier3, axis=1)
+    else:
+        false_negative_df['tier3'] = None
+    if not false_positive_df.empty:
+        false_positive_df['tier3'] = false_positive_df.apply(conditions_tier3, axis=1)
+    else:
+        false_positive_df['tier3'] = None
 
     '''
     TIER 4: All NA lengths
@@ -163,9 +181,14 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
             sys.exit("[ERROR] Cannot find columns in dataframe. Exiting.")
 
     comparison_df['tier4'] = comparison_df.apply(conditions_tier4, axis=1)
-    false_negative_df['tier4'] = false_negative_df.apply(conditions_tier4, axis=1)
-    false_positive_df['tier4'] = false_positive_df.apply(conditions_tier4, axis=1)
-
+    if not false_negative_df.empty:
+        false_negative_df['tier4'] = false_negative_df.apply(conditions_tier4, axis=1)
+    else:
+        false_negative_df['tier4'] = None
+    if not false_positive_df.empty:
+        false_positive_df['tier4'] = false_positive_df.apply(conditions_tier4, axis=1)
+    else:
+        false_positive_df['tier4'] = None
     #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
     #    print(comparison_df)
     #    print(false_positive_df)
@@ -176,6 +199,10 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
 def calculate_performance(comp_df, FN_df, FP_df):
     #TODO: check the logic of the output of this method
     results = [["TIER", "TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score"]]
+    if FN_df.empty:
+        FN = 0
+    if FP_df.empty:
+        FP = 0
     for tier in ['tier0', 'tier1', 'tier2', 'tier3', 'tier4']:
         TP = comp_df.loc[comp_df[tier] == True].shape[0]
         FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
@@ -294,7 +321,7 @@ def main():
     sv_fp_list = []
     columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'dup_truth', 'index_test', 'index_truth']   #'index_test', 'index_truth'
     window = 1000
-
+    count = 0
     # For each row in the test file:
     for index, row in node.iterrows():
         #print(row)
@@ -309,6 +336,10 @@ def main():
             # Add matches to truth_matched_df to evaluate if we've seen them before
             # Find the best match and drop the other one
             best = None
+            #if len(truth_matches) > 1:
+            #    print("\nMultiple matches")
+            #    print(row)
+            #    print(truth_matches)
             for j, truth_match in truth_matches.iterrows():
                 # Start processing singles
                 # Get the corresponding row from the dataframe to process below
@@ -318,14 +349,24 @@ def main():
                     best = [j, truth_match.tolist(), results]
                 else:
                     #evaluate if this entry is better: DEFINITION: start site diff is smallest
-                    if abs(results[3]) < abs(best[2][3]):
-                        #print("[DEBUG] NEW BEST RESULT")
+                    #print("[DEBUG] do we have a better result?")
+                    #print(best)
+                    #print(results)
+                    # Here we should evaluate which match is best
+                    if abs(results[3]) == abs(best[2][3]):
+                        if abs(results[4]) < abs(best[2][4]):
+                            print("[DEBUG] NEW BEST RESULT 1")
+                            best = [j, truth_match.tolist(), results]
+                    elif abs(results[3]) < abs(best[2][3]): # Start position should be smallest, but what do we do if this is the same?
+                        print("[DEBUG] NEW BEST RESULT 2")
                         best = [j, truth_match.tolist(), results]
             sv_comp_list.append(best[2] + [index, best[0]])
             truth.loc[truth_matches.loc[best[0],:].name,'times_checked'] += 1 #UPDATE
             #print(truth_matched_df)
         else:
-            #print("[DEBUG] No match found")
+            count += 1
+            print(row)
+            print("[DEBUG] No match found")
             sv_fp_list.append(list(row))
         #print(row)
         #print(matches)
@@ -335,9 +376,8 @@ def main():
     #
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
-
-    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        #print(sv_comp_df)
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(sv_comp_df)
     #print(sv_comp_df.shape)
     #print(sv_fp_df)
     #print(sv_fp_df.shape)
