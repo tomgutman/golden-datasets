@@ -2,7 +2,9 @@
 import sys
 import argparse
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
+
 
 '''
 inv_a <-VC_tab_formated[grepl("*]$",VC_tab_formated$ALT),]
@@ -19,7 +21,7 @@ inv_a <-VC_tab_formated[grepl("*]$",VC_tab_formated$ALT),]
 
 def deal_with_dup_truths(df, truth, test):
     dup_rows = df[df.duplicated(subset="index_truth", keep=False)]
-    print(dup_rows)
+    #print(dup_rows)
     fp = []
     # Get distinct index_truth indexes...
     dist_index_truth = list(set(dup_rows["index_truth"]))
@@ -39,15 +41,14 @@ def deal_with_dup_truths(df, truth, test):
         # Remove the fp indices from df
         df = df[~df['index_test'].isin(fp_index)]
         fp.extend(fp_index)
-    print("These test items should be removed from comparison dataframe, and added to fp")
-    print(fp)
-    print(df)
+    #print("These test items should be removed from comparison dataframe, and added to fp")
+    #print(fp)
+    #print(df)
     return(df, fp)
 
 
 def calculate_results(comparison_df, false_negative_df, false_positive_df):
     comparison_df = comparison_df.loc[comparison_df['dup_truth'] == False]
-    #TODO: How to deal with dup_truths?
     comparison_df = comparison_df.copy(deep=True)
     false_negative_df = false_negative_df.copy(deep=True)
     false_positive_df = false_positive_df.copy(deep=True)
@@ -313,7 +314,7 @@ def main():
                 else:
                     #evaluate if this entry is better: DEFINITION: start site diff is smallest
                     if abs(results[3]) < abs(best[2][3]):
-                        print("[DEBUG] NEW BEST RESULT")
+                        #print("[DEBUG] NEW BEST RESULT")
                         best = [j, truth_match.tolist(), results]
             sv_comp_list.append(best[2] + [index, best[0]])
             truth.loc[truth_matches.loc[best[0],:].name,'times_checked'] += 1 #UPDATE
