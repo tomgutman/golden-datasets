@@ -175,7 +175,7 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
 
 def calculate_performance(comp_df, FN_df, FP_df):
     #TODO: check the logic of the output of this method
-    results = [["TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score"]]
+    results = [["TIER", "TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score"]]
     for tier in ['tier0', 'tier1', 'tier2', 'tier3', 'tier4']:
         TP = comp_df.loc[comp_df[tier] == True].shape[0]
         FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
@@ -336,8 +336,8 @@ def main():
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
 
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        print(sv_comp_df)
+    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        #print(sv_comp_df)
     #print(sv_comp_df.shape)
     #print(sv_fp_df)
     #print(sv_fp_df.shape)
@@ -369,11 +369,11 @@ def main():
         #Save to file
         out = open(args.metrics, 'w')
         for tier in results:
-            out.write("\t".join(str(x) for x in tier))
+            out.write("\t".join(str(x) for x in tier) + "\n")
         out.close()
     else:
         for tier in results:
-            print("\t".join(str(x) for x in tier))
+            print("\t".join(str(x) for x in tier) + "\n")
 
 
 if __name__ == "__main__":
