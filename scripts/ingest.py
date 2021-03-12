@@ -29,8 +29,6 @@ def main():
     else:
         sys.exit("[ERROR] Do not recognize type of input vcf " + args.vcf + ". Exiting.")
 
-    #todo: check if sorted
-
     if hasattr(vcf_reader, 'metadata'):
         # Input file type is VCF. Start parsing.
         print("[INFO] File format: VCF file")
@@ -101,14 +99,6 @@ def main():
 
     else:
         sys.exit("No data parsed, please check your input data.")
-
-    '''
-    dummy_data = [[1, 100, 'X', 200, 'C', "[[CHRX:144760323[C]", 100, "BND"],
-                  [3, 5000, 'X', 10000, 'G', "[G]CHRX:153909144]]", 5000, "BND"],
-                  [5, 20, 5, 200, 'G', "[<DEL>]", 90, "DEL"]]
-    dummy_df = pd.DataFrame(dummy_data, columns=columns)
-    print(dummy_df)
-    '''
 
     # Todo: what about fusions?
 
