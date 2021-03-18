@@ -52,20 +52,10 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
     comparison_df = comparison_df.copy(deep=True)
 
     '''
-    TIER 0: Start pos within 200bp, Length ration within 20%, End pos within 200bp,
-    '''
-    def conditions_tier0(s):
-        if (s['diff_start_pos'] <= 200) and (s['diff_end_pos'] <= 200) and (abs(s['length_ratio']) >= 0.8 or pd.isna(s['length_ratio'])):
-            return True
-        else:
-            return False
-    comparison_df['tier0'] = comparison_df.apply(conditions_tier0, axis=1)
-
-    '''
     TIER 1: Start pos within 200bp, Length ratio within 20%, End pos within 200bp,
     '''
     def conditions_tier1(s):
-        pos_thres = 200
+        pos_thres = 0
         ratio_thres = 0.8
         if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
             return True
@@ -77,9 +67,9 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
     TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
     '''
     def conditions_tier2(s):
-        pos_thres = 400
+        pos_thres = 10
         ratio_thres = 0.8
-        if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres):
+        if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
             return True
         else:
             return False
@@ -90,30 +80,18 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
     TIER 3: Start pos within 600bp, Length ratio within 30%
     '''
     def conditions_tier3(s):
-        pos_thres = 600
+        pos_thres = 50
         ratio_thres = 0.7
-        if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres):
+        if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
             return True
         else:
             return False
     comparison_df['tier3'] = comparison_df.apply(conditions_tier3, axis=1)
 
-    '''
-    TIER 4: All NA lengths
-    '''
-    def conditions_tier4(s):
-        pos_thres = 200
-        if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (pd.isna(s['length_ratio'])):
-            return True
-        else:
-            return False
-
-    comparison_df['tier4'] = comparison_df.apply(conditions_tier4, axis=1)
-
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        print(comparison_df)
-        print(false_positive_df)
-        print(false_negative_df)
+    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    #    print(comparison_df)
+    #    print(false_positive_df)
+    #    print(false_negative_df)
 
     return(calculate_performance(comparison_df, false_negative_df, false_positive_df))
 
@@ -124,7 +102,7 @@ def calculate_performance(comp_df, FN_df, FP_df):
         FN = 0
     if FP_df.empty:
         FP = 0
-    for tier in ['tier0', 'tier1', 'tier2', 'tier3', 'tier4']:
+    for tier in ['tier1', 'tier2', 'tier3']:
         TP = comp_df.loc[comp_df[tier] == True].shape[0]
         FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
         FP_orig = FP_df.shape[0]
@@ -299,7 +277,7 @@ def main():
             #print(truth_matched_df)
         else:
             #print(row)
-            print("[DEBUG] No match found")
+            #print("[DEBUG] No match found")
             sv_fp_list.append(list(row))
         #print(row)
         #print(matches)
