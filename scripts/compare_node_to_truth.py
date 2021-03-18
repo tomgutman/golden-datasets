@@ -50,63 +50,74 @@ def deal_with_dup_truths(df, truth, test):
 def calculate_results(comparison_df, false_negative_df, false_positive_df):
     comparison_df = comparison_df.loc[comparison_df['dup_truth'] == False]
     comparison_df = comparison_df.copy(deep=True)
-
-    '''
-    TIER 1: Start pos within 200bp, Length ratio within 20%, End pos within 200bp,
-    '''
-    def conditions_tier1(s):
-        pos_thres = 0
-        ratio_thres = 0.8
-        if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
-            return True
-        else:
-            return False
-    comparison_df['tier1'] = comparison_df.apply(conditions_tier1, axis=1)
-
-    '''
-    TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
-    '''
-    def conditions_tier2(s):
-        pos_thres = 10
-        ratio_thres = 0.8
-        if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
-            return True
-        else:
-            return False
-    comparison_df['tier2'] = comparison_df.apply(conditions_tier2, axis=1)
+    print(comparison_df.shape[0] + false_negative_df.shape[0])
+    print(comparison_df.shape[0])
+    print(false_negative_df.shape[0])
 
 
-    '''
-    TIER 3: Start pos within 600bp, Length ratio within 30%
-    '''
-    def conditions_tier3(s):
-        pos_thres = 50
-        ratio_thres = 0.7
-        if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
-            return True
-        else:
-            return False
-    comparison_df['tier3'] = comparison_df.apply(conditions_tier3, axis=1)
+    if not comparison_df.empty:
+        '''
+        TIER 1: Start pos within 200bp, Length ratio within 20%, End pos within 200bp,
+        '''
+        def conditions_tier1(s):
+            pos_thres = 0
+            ratio_thres = 0.8
+            if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
+                return True
+            else:
+                return False
+        comparison_df['tier1'] = comparison_df.apply(conditions_tier1, axis=1)
 
-    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-    #    print(comparison_df)
-    #    print(false_positive_df)
-    #    print(false_negative_df)
+        '''
+        TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
+        '''
+        def conditions_tier2(s):
+            pos_thres = 10
+            ratio_thres = 0.8
+            if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
+                return True
+            else:
+                return False
+        comparison_df['tier2'] = comparison_df.apply(conditions_tier2, axis=1)
+
+
+        '''
+        TIER 3: Start pos within 600bp, Length ratio within 30%
+        '''
+        def conditions_tier3(s):
+            pos_thres = 50
+            ratio_thres = 0.7
+            if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
+                return True
+            else:
+                return False
+        comparison_df['tier3'] = comparison_df.apply(conditions_tier3, axis=1)
+
+        #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        #    print(comparison_df)
+        #    print(false_positive_df)
+        #    print(false_negative_df)
 
     return(calculate_performance(comparison_df, false_negative_df, false_positive_df))
 
 def calculate_performance(comp_df, FN_df, FP_df):
     #TODO: check the logic of the output of this method
     results = [["TIER", "TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score"]]
-    if FN_df.empty:
-        FN = 0
-    if FP_df.empty:
-        FP = 0
     for tier in ['tier1', 'tier2', 'tier3']:
-        TP = comp_df.loc[comp_df[tier] == True].shape[0]
-        FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
-        FP_orig = FP_df.shape[0]
-        FN = FN_df.shape[0]
+        if comp_df.empty:
+            TP = 0
+            FP_new = 0
+        else:
+            TP = comp_df.loc[comp_df[tier] == True].shape[0]
+            FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
+        if FP_df.empty:
+            FP_orig = 0
+        else:
+            FP_orig = FP_df.shape[0]
+        if FN_df.empty:
+            FN = 0
+        else:
+            FN = FN_df.shape[0]
 
         recall = TP / (TP + FN)
         precision = TP / (TP + FP_new + FP_orig)
@@ -314,7 +325,41 @@ def main():
     These rules just assign the value TRUE/FALSE to the 'tier' columns of the sv_comp_df
     Later we can compute the metrics for all of the tiers
     '''
+    print("\n### Results of all variants:")
     results = calculate_results(sv_comp_df, sv_fn_df, sv_fp_df)
+
+    print("\n### Results of 0 - 200 bp bin:")
+    lower_thres = 0
+    upper_thres = 50
+    sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
+    sv_fn_df_bin0 = sv_fn_df.loc[(sv_fn_df['length'] >= lower_thres) & (sv_fn_df['length'] < upper_thres)]
+    sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
+    results = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+
+    print("\n### Results of 200 - 1000 bp bin:")
+    lower_thres = 50
+    upper_thres = 200
+    sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
+    sv_fn_df_bin0 = sv_fn_df.loc[(sv_fn_df['length'] >= lower_thres) & (sv_fn_df['length'] < upper_thres)]
+    sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
+    results = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+
+    print("\n### Results of 200 - 1000 bp bin:")
+    lower_thres = 200
+    upper_thres = 1000
+    sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
+    sv_fn_df_bin0 = sv_fn_df.loc[(sv_fn_df['length'] >= lower_thres) & (sv_fn_df['length'] < upper_thres)]
+    sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
+    results = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+
+    print("\n### Results of > 1000 bp bin:")
+    lower_thres = 1000
+    upper_thres = 100000000000000000000000000000
+    sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
+    sv_fn_df_bin0 = sv_fn_df.loc[(sv_fn_df['length'] >= lower_thres) & (sv_fn_df['length'] < upper_thres)]
+    sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
+    results = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+
 
     if args.metrics:
         #Save to file
