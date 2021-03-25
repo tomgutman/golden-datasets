@@ -89,6 +89,9 @@ def parse(vcf_reader, samplename):
                 if isinstance(length, list):
                     # Length is list
                     length = length[0]
+            
+            elif 'LEFT_SVINSSEQ' in record.INFO:
+                length = len(str(record.INFO['LEFT_SVINSSEQ'])) + len(str(record.INFO['RIGHT_SVINSSEQ']))                                    
             else:
                 if end_chrom == start_chrom:
                     length = int(end) - int(start)
