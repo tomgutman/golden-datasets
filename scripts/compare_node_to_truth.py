@@ -50,10 +50,9 @@ def deal_with_dup_truths(df, truth, test):
 def calculate_results(comparison_df, false_negative_df, false_positive_df):
     comparison_df = comparison_df.loc[comparison_df['dup_truth'] == False]
     comparison_df = comparison_df.copy(deep=True)
-    print(comparison_df.shape[0] + false_negative_df.shape[0])
-    print(comparison_df.shape[0])
-    print(false_negative_df.shape[0])
-
+    #print(comparison_df.shape[0] + false_negative_df.shape[0])
+    #print(comparison_df.shape[0])
+    #print(false_negative_df.shape[0])
 
     if not comparison_df.empty:
         '''
@@ -307,8 +306,8 @@ def main():
     #
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
-    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-    #    print(sv_comp_df)
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(sv_comp_df)
     #print(sv_comp_df.shape)
     #print(sv_fp_df)
     #print(sv_fp_df.shape)
@@ -328,6 +327,7 @@ def main():
     # Remove the duplicates with largest distance and add them to the false positive list
     to_add_to_fp = node.iloc[fp]
     sv_fp_df = pd.concat([sv_fp_df, to_add_to_fp], sort=False).sort_index()
+    results = {}
 
     #SET RULES FOR THE TIERS
     '''
@@ -335,23 +335,23 @@ def main():
     Later we can compute the metrics for all of the tiers
     '''
     print("\n### Results of all variants:")
-    results = calculate_results(sv_comp_df, sv_fn_df, sv_fp_df)
+    results["All results"] = calculate_results(sv_comp_df, sv_fn_df, sv_fp_df)
 
-    print("\n### Results of 0 - 200 bp bin:")
+    print("\n### Results of 0 - 50 bp bin:")
     lower_thres = 0
     upper_thres = 50
     sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
     sv_fn_df_bin0 = sv_fn_df.loc[(sv_fn_df['length'] >= lower_thres) & (sv_fn_df['length'] < upper_thres)]
     sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
-    results = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+    results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
-    print("\n### Results of 200 - 1000 bp bin:")
+    print("\n### Results of 50 - 200 bp bin:")
     lower_thres = 50
     upper_thres = 200
     sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
     sv_fn_df_bin0 = sv_fn_df.loc[(sv_fn_df['length'] >= lower_thres) & (sv_fn_df['length'] < upper_thres)]
     sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
-    results = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+    results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
     print("\n### Results of 200 - 1000 bp bin:")
     lower_thres = 200
@@ -359,7 +359,7 @@ def main():
     sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
     sv_fn_df_bin0 = sv_fn_df.loc[(sv_fn_df['length'] >= lower_thres) & (sv_fn_df['length'] < upper_thres)]
     sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
-    results = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+    results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
     print("\n### Results of > 1000 bp bin:")
     lower_thres = 1000
@@ -367,18 +367,25 @@ def main():
     sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
     sv_fn_df_bin0 = sv_fn_df.loc[(sv_fn_df['length'] >= lower_thres) & (sv_fn_df['length'] < upper_thres)]
     sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
-    results = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+    results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
+    print("\n### Results of NaN length bins:")
+    sv_comp_df_bin0 = sv_comp_df.loc[pd.isna(sv_comp_df['length_truth'])]
+    sv_fn_df_bin0 = sv_fn_df.loc[pd.isna(sv_fn_df['length'])]
+    sv_fp_df_bin0 = sv_fp_df.loc[pd.isna(sv_fp_df['length'])]
+    results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
     if args.metrics:
         #Save to file
         out = open(args.metrics, 'w')
-        for tier in results:
-            out.write("\t".join(str(x) for x in tier) + "\n")
+        for bin in results:
+            for tier in results[bin]:
+                out.write(bin + "\t" + "\t".join(str(x) for x in tier) + "\n")
         out.close()
-    else:
-        for tier in results:
-            print("\t".join(str(x) for x in tier) + "\n")
+
+    for bin in results:
+        for tier in results[bin]:
+            print(bin + "\t" + "\t".join(str(x) for x in tier))
 
 
 if __name__ == "__main__":
