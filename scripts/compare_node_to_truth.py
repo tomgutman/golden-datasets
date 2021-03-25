@@ -119,8 +119,16 @@ def calculate_performance(comp_df, FN_df, FP_df):
         else:
             FN = FN_df.shape[0]
 
-        recall = TP / (TP + FN)
-        precision = TP / (TP + FP_new + FP_orig)
+        if (TP + FN)==0:
+            recall = 0
+        else:
+            recall = TP / (TP + FN)
+        
+        if (TP + FP_new + FP_orig)==0:
+            precision= 0        
+        else:
+            precision = TP / (TP + FP_new + FP_orig)
+        
         if (recall + precision) == 0:
             F1 = 0
         else:
@@ -169,7 +177,8 @@ def calculate_characteristics(truth, test, window):
     else:
         diff_length = test['length'] - truth['length']
 
-    if pd.isnull(truth['length']):
+    
+    if pd.isnull(truth['length']) or truth['length']==0:
         length_truth = np.NaN
         norm_start_pos = np.NaN
         norm_end_pos = np.NaN
@@ -178,10 +187,10 @@ def calculate_characteristics(truth, test, window):
         norm_start_pos = (int(test['start']) - int(truth['start'])) / truth['length']
         norm_end_pos = (int(test['end']) - int(truth['end'])) / truth['length']
 
-    if pd.isnull(truth['length']) or pd.isnull(test['length']):
+    if pd.isnull(truth['length']) or pd.isnull(test['length']) or truth['length']==0 or test['length']==0:
         length_ratio = np.NaN
     else:
-        length_ratio = min(test['length'], truth['length']) / max(test['length'], truth['length'])
+        length_ratio = min(test['length'], truth['length']) / max(truth['length'], test['length'])
 
     # Compare the types of the SVs
     #print(test['type'] + "\t" + truth['type'])
