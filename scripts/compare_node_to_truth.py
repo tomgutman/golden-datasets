@@ -133,13 +133,13 @@ def calculate_performance(comp_df, FN_df, FP_df):
         else:
             F1 = 2 * (recall * precision) / (recall + precision)
 
-        print("Performance " + tier)
-        print("\tTP " + str(TP))
-        print("\tFP " + str(FP_orig + FP_new) + "\tFP_orig(" + str(FP_orig) + ") + FP_new(" + str(FP_new) + ")")
-        print("\tFN " + str(FN))
-        print("\tRecall:\t" + str(round(recall,2)))
-        print("\tPrecision:\t" + str(round(precision,2)))
-        print("\tF1-score:\t" + str(round(F1,2)))
+        #print("Performance " + tier)
+        #print("\tTP " + str(TP))
+        #print("\tFP " + str(FP_orig + FP_new) + "\tFP_orig(" + str(FP_orig) + ") + FP_new(" + str(FP_new) + ")")
+        #print("\tFN " + str(FN))
+        #print("\tRecall:\t" + str(round(recall,2)))
+        #print("\tPrecision:\t" + str(round(precision,2)))
+        #print("\tF1-score:\t" + str(round(F1,2)))
 
         #TODO: include match_type column
         results.append([tier, TP, FP_orig + FP_new, FP_orig, FP_new, FN, round(recall,2), round(precision,2), round(F1,2)])
@@ -334,10 +334,10 @@ def main():
     These rules just assign the value TRUE/FALSE to the 'tier' columns of the sv_comp_df
     Later we can compute the metrics for all of the tiers
     '''
-    print("\n### Results of all variants:")
+    #print("\n### Results of all variants:")
     results["All results"] = calculate_results(sv_comp_df, sv_fn_df, sv_fp_df)
 
-    print("\n### Results of 0 - 50 bp bin:")
+    #print("\n### Results of 0 - 50 bp bin:")
     lower_thres = 0
     upper_thres = 50
     sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
@@ -345,7 +345,7 @@ def main():
     sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
     results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
-    print("\n### Results of 50 - 200 bp bin:")
+    #print("\n### Results of 50 - 200 bp bin:")
     lower_thres = 50
     upper_thres = 200
     sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
@@ -353,7 +353,7 @@ def main():
     sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
     results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
-    print("\n### Results of 200 - 1000 bp bin:")
+    #print("\n### Results of 200 - 1000 bp bin:")
     lower_thres = 200
     upper_thres = 1000
     sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
@@ -361,7 +361,7 @@ def main():
     sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
     results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
-    print("\n### Results of > 1000 bp bin:")
+    #print("\n### Results of > 1000 bp bin:")
     lower_thres = 1000
     upper_thres = 100000000000000000000000000000
     sv_comp_df_bin0 = sv_comp_df.loc[(sv_comp_df['length_truth'] >= lower_thres) & (sv_comp_df['length_truth'] < upper_thres)]
@@ -369,7 +369,7 @@ def main():
     sv_fp_df_bin0 = sv_fp_df.loc[(sv_fp_df['length'] >= lower_thres) & (sv_fp_df['length'] < upper_thres)]
     results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
-    print("\n### Results of NaN length bins:")
+    #print("\n### Results of NaN length bins:")
     sv_comp_df_bin0 = sv_comp_df.loc[pd.isna(sv_comp_df['length_truth'])]
     sv_fn_df_bin0 = sv_fn_df.loc[pd.isna(sv_fn_df['length'])]
     sv_fp_df_bin0 = sv_fp_df.loc[pd.isna(sv_fp_df['length'])]
