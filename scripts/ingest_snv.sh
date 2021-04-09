@@ -49,7 +49,7 @@ OUTPUT_DIR=$OUTPUT_DIR/$SAMPLE_NAME
 # Load conda env:
 #conda env create -n eucancan -f golden-datasets/scripts/environment.yml
 
-source activate eucancan
+#source activate eucancan
 
 # Check if vcf is mono sample:
 
@@ -75,14 +75,17 @@ fi
 echo -e "[Running Information]: sorting vcf files\n"
 bcftools sort $snv -o $OUTPUT_DIR/`basename $snv .vcf.gz`".sort.vcf.gz" -O z
 bcftools sort $indel -o $OUTPUT_DIR/`basename $indel .vcf.gz`".sort.vcf.gz" -O z
+bcftools sort $truth -o $OUTPUT_DIR/`basename $truth .vcf.gz`".sort.vcf.gz" -O z
 
 snv=`basename $snv .vcf.gz`".sort.vcf.gz"
 indel=`basename $indel .vcf.gz`".sort.vcf.gz"
+truth=`basename $truth .vcf.gz`".sort.vcf.gz"
 
 # indexing sorted vcf files
 echo -e "[Running Information]: indexing vcf files\n"
 bcftools index -f -o $OUTPUT_DIR/$snv".csi" $OUTPUT_DIR/$snv
 bcftools index -f -o $OUTPUT_DIR/$indel".csi" $OUTPUT_DIR/$indel
+bcftools index -f -o $OUTPUT_DIR/$truth".csi" $OUTPUT_DIR/$truth
 
 # Merging SNV.vcf & INDEL.vcf:
 echo -e "[Running Information]: concatenate vcf files\n"
@@ -96,7 +99,7 @@ echo -e "[Running Information]: indexing...]"
 export HGREF=/data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
 
 bcftools index -f -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz.csi" $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
-bcftools index -f $truth
+#bcftools index -f $truth
 
 echo -e "[Running Information]: multimerge...]"
 
