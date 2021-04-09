@@ -1,4 +1,5 @@
 import sys
+import pandas as pd
 
 def parse(vcf_reader):
     variants = []
@@ -88,10 +89,15 @@ def parse(vcf_reader):
             start_chrom = line[header.index('chr1')]
             start = line[header.index('pos1')]
             end_chrom = line[header.index('chr2')]
+            #For insertions we assume that the chrom is the same and the end pos is start +1
+            if end_chrom == "<INS>":
+                end_chrom = start_chrom
             end = line[header.index('pos2')]
+            if end == ".":
+                end = int(start) +1
             ref = line[header.index('ref')]
             alt = None
-            length = line[header.index('size')]
+            length = int(line[header.index('size')])
             if length in [0, "0"]:
                 length = None #Only for SV involving different chr.. maybe use sth more specific.
     
@@ -142,6 +148,8 @@ def parse(vcf_reader):
         sv_type = sv_type.replace("translocation", "TRA")
         sv_type = sv_type.replace("insertion", "INS")
         sv_type = sv_type.replace("duplication", "DUP")
+    
+        #variants["length"] = pd.to_numeric(variants["length"])
     
         #Gather variant info
         variants.append([start_chrom, start, end_chrom, end, ref, alt, length, sv_type])

@@ -23,7 +23,6 @@ def parse(vcf_reader, samplename):
     # Start reading in records and add to dataframe
     for record in vcf_reader:
         nr_of_vars += 1
-
         # Only use 'PASS' calls
         if record.FILTER:
 
@@ -66,10 +65,11 @@ def parse(vcf_reader, samplename):
 
             # Get end coordinate from file if registered in INFO field
             if 'END' in record.INFO:
-                end = record.sv_end + 1
+                end = record.sv_end
+                end_chrom = start_chrom
             else:
                 # Parse end from ALT
-                end_pos = str(record.ALT[0]).replace("CHR", "").replace("chr", "").replace("A", "").replace("G", "").replace("T", "").replace("C", "").replace("]", "").replace("[", "")
+                end_pos = str(record.ALT[0]).replace("CHR", "").replace("chr", "").replace("A", "").replace("G", "").replace("T", "").replace("C", "").replace("N", "").replace("]", "").replace("[", "")
                 if "." in end_pos:
                     '''
                     # SV is probably BND?, possible alts: ".str", "str.", "N.", ".N"
@@ -86,6 +86,12 @@ def parse(vcf_reader, samplename):
 
             if 'SVLEN' in record.INFO:
                 length = record.INFO['SVLEN']
+                if isinstance(length, list):
+                    # Length is list
+                    length = length[0]
+            
+            elif 'LEFT_SVINSSEQ' in record.INFO:
+                length = len(str(record.INFO['LEFT_SVINSSEQ'])) + len(str(record.INFO['RIGHT_SVINSSEQ']))                                    
             else:
                 if end_chrom == start_chrom:
                     length = int(end) - int(start)
@@ -96,7 +102,9 @@ def parse(vcf_reader, samplename):
             alt = record.ALT[0]
 
             sv_type = None
-            if 'SVTYPE' in record.INFO: # Support Hartwig
+            if 'EVENTTYPE' in record.INFO: # Support Hartwig
+                sv_type = record.INFO['EVENTTYPE']
+            elif 'SVTYPE' in record.INFO: # Support Curie
                 sv_type = record.INFO['SVTYPE']
             else:
                 sv_type = record.var_subtype
