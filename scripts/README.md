@@ -20,6 +20,8 @@ Scripts in this folder have two main purpose:
 
 ## Tool summary
 
+![**Benchmarking flowchart**](../docs/flowchart.png)
+
 ### SV Benchmark
 
 **requirements**
