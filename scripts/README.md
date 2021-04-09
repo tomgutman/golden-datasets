@@ -20,6 +20,11 @@ Scripts in this folder have two main purpose:
 
 ## Tool summary
 
+<center>
+<img src="../docs/flowchart.png" alt="flowchart" width="700px"/>
+</center>
+
+
 ### SV Benchmark
 
 **requirements**
