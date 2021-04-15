@@ -10,7 +10,7 @@ while getopts "t:s:i:v:f:o:n:kh" option; do
         i) indel=${OPTARG};;
         v) sv=${OPTARG};;
         u) truth_sv=${OPTARG};;
-        f) HGREF=${OPTARG};;
+        f) FASTA=${OPTARG};;
         o) OUTPUT_DIR=${OPTARG};;
         n) SAMPLE_NAME=${OPTARG};;
         k) KEEP=true;;
@@ -47,9 +47,9 @@ mkdir -p $OUTPUT_DIR/$SAMPLE_NAME
 OUTPUT_DIR=$OUTPUT_DIR/$SAMPLE_NAME
 
 # Load conda env:
-#conda env create -n eucancan -f golden-datasets/scripts/environment.yml
+#conda create -n eucancan -f golden-datasets/scripts/environment_snv.yml
 
-#source activate eucancan
+source activate eucancan
 
 # Check if vcf is mono sample:
 
@@ -95,18 +95,18 @@ bcftools concat -a $OUTPUT_DIR/$snv $OUTPUT_DIR/$indel -O z -o $OUTPUT_DIR/$SAMP
 echo -e "[Running Information]: preparing for normalizing\n"
 echo -e "[Running Information]: indexing...]"
 
-#export $FASTA
-export HGREF=/data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
+export HGREF=$FASTA
+#export HGREF=/data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
 
 bcftools index -f -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz.csi" $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
 #bcftools index -f $truth
 
 echo -e "[Running Information]: multimerge...]"
 
-echo $truth
-echo $OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz"
+#echo $truth
+#echo $OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz"
 multimerge $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz" -r $HGREF -f true -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.prep.vcf" --process-full=1
-multimerge $truth -r $HGREF -o $OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz" --process-full=1
+multimerge $OUTPUT_DIR/$truth -r $HGREF -o $OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz" --process-full=1
 
 # Normalizing vcfs:
 echo -e "[Running Information]: normalizing test file\n"
@@ -121,15 +121,16 @@ pre.py $truth $OUTPUT_DIR/`basename $truth .vcf.gz`".norm.vcf.gz" -L --decompose
 
 # Running ingestion script:
 echo -e "[Running Information]: Running ingestion_snv.py script \n"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-python ~/Documents/Tom/EUCANCan/golden-datasets-fork-tom/golden-datasets/scripts/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/`basename $merge_file .vcf` $OUTPUT_DIR/`basename $merge_file _merge.prep.vcf`".norm.vcf.gz"
+python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/`basename $merge_file .vcf` $OUTPUT_DIR/`basename $merge_file _merge.prep.vcf`".norm.vcf.gz"
 
-python ~/Documents/Tom/EUCANCan/golden-datasets-fork-tom/golden-datasets/scripts/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/`basename $truth .vcf.gz` $OUTPUT_DIR/`basename $truth .vcf.gz`".norm.vcf.gz"
+python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/`basename $truth .vcf.gz` $OUTPUT_DIR/`basename $truth .vcf.gz`".norm.vcf.gz"
 
 # Running som.py:
 echo -e "[Running Information]: Running som.py evaluation script\n"
 
-som.py `basename $truth .vcf.gz`".filtered.vcf" $OUTPUT_DIR/`basename $merge_file .vcf`".filtered.vcf" -o $OUTPUT_DIR/`basename $merge_file .vcf`"eval.txt" --verbose -N
+som.py $OUTPUT_DIR/`basename $truth .vcf.gz`".filtered.vcf" $OUTPUT_DIR/`basename $merge_file .vcf`".filtered.vcf" -o $OUTPUT_DIR/`basename $merge_file .vcf`"eval.txt" --verbose -N
 
 echo -e "[Running Information]: script ended successfully\n"
 
@@ -185,8 +186,7 @@ rm $truth".csi"
 #SCRIPT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/golden-datasets-fork-tom/golden-datasets/scripts/
 #OUT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/test_ingestions_sh
 
-#bash $SCRIPT_DIR/ingest_snv.sh -t truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz -s test_indel.vcf.gz -i test_snv.vcf.gz -o $OUT_DIR -c $SCRIPT_DIR/config.txt  -n curie_dream_1 -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
+#bash $SCRIPT_DIR/ingest_snv.sh -t truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz -s test_indel.vcf.gz -i test_snv.vcf.gz -o $OUT_DIR  -n curie_dream_1 -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
 
 
-#/!\ enlever le hard path du script python
 #/!\ ajouter etape de split multisample if it is the case
