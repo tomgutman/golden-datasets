@@ -49,7 +49,7 @@ OUTPUT_DIR=$OUTPUT_DIR/$SAMPLE_NAME
 # Load conda env:
 #conda env create -n eucancan -f golden-datasets/scripts/environment_snv.yml
 
-source activate eucancan
+#source activate eucancan
 
 # Check if vcf is mono sample:
 
