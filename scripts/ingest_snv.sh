@@ -15,7 +15,7 @@ while getopts "t:s:i:v:f:o:n:kh" option; do
         n) SAMPLE_NAME=${OPTARG};;
         k) KEEP=true;;
         h)  echo "Usage:"
-            echo "bash tmb_dragon.sh -t truth_file.vcf"
+            echo "bash ingest_snv.sh -t truth_file.vcf"
             echo "                   -s snv.vcf"
             echo "                   -i indel.vcf"
             echo "                   -v sv.vcf"
@@ -47,9 +47,9 @@ mkdir -p $OUTPUT_DIR/$SAMPLE_NAME
 OUTPUT_DIR=$OUTPUT_DIR/$SAMPLE_NAME
 
 # Load conda env:
-#conda create -n eucancan -f golden-datasets/scripts/environment_snv.yml
+#conda env create -n eucancan -f golden-datasets/scripts/environment_snv.yml
 
-source activate eucancan
+#source activate eucancan
 
 # Check if vcf is mono sample:
 
@@ -70,6 +70,17 @@ fi
 #         $BCF_DIR/bcftools view -c1 -Oz -s $sample_vcf -o $OUTPUT_DIR/$dataset/$sample_vcf"_multisample.hg19_multianno.vcf.gz" $file
 #         gunzip $OUTPUT_DIR/$dataset/$sample_vcf"_multisample.hg19_multianno.vcf.gz"
 
+# Replace the 'chr' with '' in the VCFs
+#zcat $snv | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/snv_temp.vcf
+#zcat $indel | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/indel_temp.vcf
+#zcat $truth | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/truth_temp.vcf
+zcat $snv | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/snv_temp.vcf
+zcat $indel | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/indel_temp.vcf
+zcat $truth | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/truth_temp.vcf
+
+snv=$OUTPUT_DIR/snv_temp.vcf
+indel=$OUTPUT_DIR/indel_temp.vcf
+truth=$OUTPUT_DIR/truth_temp.vcf
 
 # Sorting vcf files
 echo -e "[Running Information]: sorting vcf files\n"
