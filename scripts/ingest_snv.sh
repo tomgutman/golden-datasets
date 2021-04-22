@@ -70,6 +70,14 @@ fi
 #         $BCF_DIR/bcftools view -c1 -Oz -s $sample_vcf -o $OUTPUT_DIR/$dataset/$sample_vcf"_multisample.hg19_multianno.vcf.gz" $file
 #         gunzip $OUTPUT_DIR/$dataset/$sample_vcf"_multisample.hg19_multianno.vcf.gz"
 
+# Replace the 'chr' with '' in the VCFs
+zcat $snv | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/snv_temp.vcf
+zcat $indel | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/indel_temp.vcf
+zcat $truth | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/truth_temp.vcf
+
+snv=$OUTPUT_DIR/snv_temp.vcf
+indel=$OUTPUT_DIR/indel_temp.vcf
+truth=$OUTPUT_DIR/truth_temp.vcf
 
 # Sorting vcf files
 echo -e "[Running Information]: sorting vcf files\n"
