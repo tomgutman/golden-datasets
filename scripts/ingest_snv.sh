@@ -47,7 +47,7 @@ mkdir -p $OUTPUT_DIR/$SAMPLE_NAME
 OUTPUT_DIR=$OUTPUT_DIR/$SAMPLE_NAME
 
 # Load conda env:
-#conda create -n eucancan -f golden-datasets/scripts/environment_snv.yml
+#conda env create -n eucancan -f golden-datasets/scripts/environment_snv.yml
 
 #source activate eucancan
 
