@@ -15,7 +15,7 @@ while getopts "t:s:i:v:f:o:n:kh" option; do
         n) SAMPLE_NAME=${OPTARG};;
         k) KEEP=true;;
         h)  echo "Usage:"
-            echo "bash tmb_dragon.sh -t truth_file.vcf"
+            echo "bash ingest_snv.sh -t truth_file.vcf"
             echo "                   -s snv.vcf"
             echo "                   -i indel.vcf"
             echo "                   -v sv.vcf"
@@ -65,20 +65,36 @@ echo -e "[Running Information]: filtering PASS variants\n"
 ## for SNV
 if [[ $snv == *.vcf ]];then
     grep "PASS\|#" $snv > $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
-    snv=$OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
+    snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
 elif [[ $snv == *.vcf.gz ]];then
     zcat $snv | grep "PASS\|#" > $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
-    snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
+    snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
 fi
 
 ## for indels
 if [[ $indel == *.vcf ]];then
     grep "PASS\|#" $indel > $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
-    indel=$OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
 elif [[ $indel == *.vcf.gz ]];then
     zcat $indel | grep "PASS\|#" > $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
-    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
 fi
+
+# Replace the 'chr' with '' in the VCFs
+#zcat $snv | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/snv_temp.vcf
+#zcat $indel | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/indel_temp.vcf
+#zcat $truth | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/truth_temp.vcf
+zcat $snv | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/snv_temp.vcf
+zcat $indel | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/indel_temp.vcf
+zcat $truth | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/truth_temp.vcf
+
+snv=$OUTPUT_DIR/snv_temp.vcf
+indel=$OUTPUT_DIR/indel_temp.vcf
+truth=$OUTPUT_DIR/truth_temp.vcf
 
 # Sorting vcf files
 echo -e "[Running Information]: sorting vcf files\n"
