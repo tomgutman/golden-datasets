@@ -72,6 +72,12 @@ To use it, simply use:
 
 ```shell
 conda create -n snv_bench -f golden-datasets/scripts/environment_snv.yml
+```
+or
+```
+conda env create -n snv_bench -f golden-datasets/scripts/environment_snv.yml
+```
+And then:
 conda activate snv_bench
 ```
 
