@@ -33,6 +33,7 @@ done
 echo " "
 echo -e "[General Information]:\n"
 echo "Truth File:" $truth
+
 echo "SNV vcf file:" $snv
 echo "INDEL vcf file:" $indel
 echo "SV vcf file:" $sv
@@ -44,9 +45,9 @@ echo "sample Name:" $SAMPLE_NAME
 echo "keep intermediate files ?:" $KEEP
 echo " "
 
-if [ -z ${snvindel+x} ]; then echo "snvindel is unset"; else echo "snvindel is set to '$snvindel'"; fi
-if [ -z ${snv+x} ]; then echo "snv is unset"; else echo "snv is set to '$snv'"; fi
-if [ -z ${indel+x} ]; then echo "indel is unset"; else echo "indel is set to '$indel'"; fi
+if [ ! -z ${snvindel+x} ]; then echo "snvindel is set to '$snvindel'"; else echo "snvindel is unset"; fi
+if [ ! -z ${snv+x} ]; then echo "snv is set to '$snv'"; else echo "snv is unset"; fi
+if [ ! -z ${indel+x} ]; then echo "indel is set to '$indel'"; else echo "indel is unset"; fi
 
 # Create output dir:
 
