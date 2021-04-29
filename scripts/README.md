@@ -87,7 +87,7 @@ To benchmark snv calls from different centers, multipe steps are required:
 
 ```
 bash ingest_snv.sh -h
-bash tmb_dragon.sh -t truth_file.vcf
+		    -t truth_file.vcf
                    -s snv.vcf
                    -i indel.vcf
                    -f ref_fasta.fa
