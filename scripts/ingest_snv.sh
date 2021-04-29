@@ -3,31 +3,35 @@ set -e
 #EUCANCAN SNV & INDEL vcf handling
 KEEP=false
 
-while getopts "t:s:i:v:f:o:n:kh" option; do
-    case "${option}" in
-        t) truth=${OPTARG};;
-        s) snv=${OPTARG};;
-        i) indel=${OPTARG};;
-        v) sv=${OPTARG};;
-        m) snvindel=${OPTARG};;
-        u) truth_sv=${OPTARG};;
-        f) FASTA=${OPTARG};;
-        o) OUTPUT_DIR=${OPTARG};;
-        n) SAMPLE_NAME=${OPTARG};;
-        k) KEEP=true;;
-        h)  echo "Usage:"
-            echo "bash ingest_snv.sh -t truth_file.vcf"
-            echo "                   -s snv.vcf"
-            echo "                   -i indel.vcf"
-            echo "                   -m indels_and_vcfs.vcf"
-            echo "                   -v sv.vcf"
-            echo "                   -u truth_sv.vcf"
-            echo "                   -f ref_fasta.fa"
-            echo "                   -o /OUTPUT_DIR/PATH"
-            echo "                   -n Sample name"
-            echo "                   -k (to keep intermediates files)"
-            exit
-    esac
+while [ $# -gt 0 ] ; do
+  case $1 in
+      -t | --truth) truth="$2";;
+      -s | --snv) snv="$2";;
+      -i | --indel) indel="$2";;
+      -m | --snvindel) snvindel="$2";;
+      -v | --sv) sv="$2";;
+      -u | --truth_sv) truth_sv="$2";;
+      -f | --fasta) FASTA="$2";;
+      -d | --outdir) OUTPUT_DIR="$2";;
+      -o | --outname) OUT_NAME="$2";;
+      -n | --sname) SAMPLE_NAME="$2";;
+      -k | --keep) KEEP=true;;
+      -h | --help)  echo "Usage:"
+          echo "bash ingest_snv.sh --truth truth_file.vcf"
+          echo "                   --snv snv.vcf"
+          echo "                   --indel indel.vcf"
+          echo "                   --snvindel indels_and_vcfs.vcf"
+          echo "                   --sv sv.vcf"
+          echo "                   --truth_sv truth_sv.vcf"
+          echo "                   --fasta ref_fasta.fa"
+          echo "                   --outdir /OUTPUT_DIR/PATH"
+          echo "                   --outname output file name"
+          echo "                   --sname vcf sample name"
+          echo "                   --keep (to keep intermediates files)"
+          exit
+
+  esac
+  shift
 done
 
 echo " "
@@ -35,203 +39,181 @@ echo -e "[General Information]:\n"
 echo "Truth File:" $truth
 echo "SNV vcf file:" $snv
 echo "INDEL vcf file:" $indel
-echo "SV vcf file:" $sv
 echo "SNV + INDEL vcf file:" $snvindel
+echo "SV vcf file:" $sv
 echo "TRUTH SV file:" $truth_sv
 echo "Reference fasta file:" $FASTA
 echo "output path:" $OUTPUT_DIR
-echo "sample Name:" $SAMPLE_NAME
+echo "output file Name:" $OUT_NAME
+echo "vcf sample name:" $SAMPLE_NAME
 echo "keep intermediate files ?:" $KEEP
 echo " "
 
-#if [ ! -z ${snvindel+x} ]; then echo "snvindel is set to '$snvindel'"; else echo "snvindel is unset"; fi
-#if [ ! -z ${snv+x} ]; then echo "snv is set to '$snv'"; else echo "snv is unset"; fi
-#if [ ! -z ${indel+x} ]; then echo "indel is set to '$indel'"; else echo "indel is unset"; fi
-
-# If SNV + INDELS are combined in input, set SNV variable and ignore the indel variable.
-#if [ -z ${snvindel+x} ]; then snv=$snvindel; fi
-#echo "Resetting snv variable to snvindel: " $snv
-
 # Create output dir:
 
-mkdir -p $OUTPUT_DIR/$SAMPLE_NAME
-OUTPUT_DIR=$OUTPUT_DIR/$SAMPLE_NAME
+mkdir -p $OUTPUT_DIR/$OUT_NAME
+OUTPUT_DIR=$OUTPUT_DIR/$OUT_NAME
 
 # Load conda env:
 #conda env create -n eucancan -f golden-datasets/scripts/environment_snv.yml
 
 #source activate eucancan
 
+# If SNV and INDEL in two files
+
+if [[ ! -z "$snv" && ! -z "$indel" ]]; then
+    echo "snv and indel not empty"
+    if [[ $snv == *.vcf ]]; then
+        bgzip -c $snv > $OUTPUT_DIR/$snv".gz"
+        snv=$OUTPUT_DIR/$snv".gz"
+    fi
+    if [[ $indel == *.vcf ]]; then
+        bgzip -c $indel > $OUTPUT_DIR/$indel".gz"
+        indel=$OUTPUT_DIR/$indel".gz"
+    fi
+
+    echo -e "[Running Information]: indexing vcf files\n"
+    bcftools index -f -o $snv".csi" $snv
+    bcftools index -f -o $indel".csi" $indel
+
+    echo -e "[Running Information]: concatenate vcf files\n"
+    bcftools concat -a $snv $indel -O z -o $OUTPUT_DIR/"snv_indel_temp.vcf.gz"
+    snvindel=$OUTPUT_DIR/"snv_indel_temp.vcf.gz"
+fi
+
+echo $snvindel
+#bgzip
+# index
+# concat
+
+
+
+# If SNV_INDEL:
+
+## if snvindel vcf
+if [[ $snvindel == *.vcf ]]; then
+    cat $snvindel > $OUTPUT_DIR/snv_indel_temp.vcf
+    gzip $OUTPUT_DIR/snv_indel_temp.vcf
+    snvindel=$OUTPUT_DIR/snv_indel_temp.vcf.gz
+fi
+
+## if truth vcf
+if [[ $truth == *.vcf ]]; then
+    cat $truth > $OUTPUT_DIR/truth_temp.vcf
+    gzip $OUTPUT_DIR/truth_temp.vcf
+    truth=$OUTPUT_DIR/truth_temp.vcf.gz
+fi
+
 # Check if vcf is mono sample:
 
-if [ `bcftools query -l $snv |wc -l` -gt 1 ] || [ `bcftools query -l $truth |wc -l` -gt 1 ]; then
-    echo $snv "is a multisample"
-    echo "the vcf must be single sample "
+echo -e "[Running Information]: checking if vcf is multisample\n"
+
+if [[ `bcftools query -l $snvindel |wc -l` -gt 1  && -z "$SAMPLE_NAME" ]]; then
+    echo $snvindel "is a multisample"
+    echo "sample name must be specified in -n parameter"
     exit
+elif [[ `bcftools query -l $snvindel |wc -l` -gt 1  && ! -z "$SAMPLE_NAME" ]]; then
+    echo $SAMPLE_NAME
+    bcftools view -c1 -O z -s $SAMPLE_NAME -o $OUTPUT_DIR/snv_indel_temp.sample.vcf.gz $snvindel
+    snvindel=$OUTPUT_DIR/snv_indel_temp.sample.vcf.gz
 fi
 
-# Keeping only PASS variants:
-echo -e "[Running Information]: filtering PASS variants\n"
+## Replace the 'chr' with '' in the VCFs
 
-## for SNV
-if [[ $snv == *.vcf ]]; then
-    grep "PASS\|#" $snv > $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
-    snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
-elif [[ $snv == *.vcf.gz ]]; then
-    zcat $snv | grep "PASS\|#" > $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
-    snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
-fi
+echo -e "[Running Information]: replacing "" by "chr"\n"
 
-## for indels, skip if snvindels is set and indels is unset
-if [[ $indel == *.vcf ]]; then
-    grep "PASS\|#" $indel > $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
-    indel=$OUTPUT_DIR/`basename $indel .vcf`
-    #gzip $OUTPUT_DIR/$indel
-    gzip $OUTPUT_DIR/`basename $indel`".pass.vcf"
-    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
-elif [[ $indel == *.vcf.gz ]]; then
-    zcat $indel | grep "PASS\|#" > $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
-    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`
-    #gzip $OUTPUT_DIR/$indel
-    gzip $OUTPUT_DIR/`basename $indel`".pass.vcf"
-    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
-fi
-
-
-# Replace the 'chr' with '' in the VCFs
-#zcat $snv | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/snv_temp.vcf
-#zcat $indel | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/indel_temp.vcf
-#zcat $truth | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/truth_temp.vcf
-zcat $snv | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/snv_temp.vcf
-zcat $indel | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/indel_temp.vcf
+zcat $snvindel | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/snv_indel_temp.vcf
 zcat $truth | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/truth_temp.vcf
 
-snv=$OUTPUT_DIR/snv_temp.vcf
-indel=$OUTPUT_DIR/indel_temp.vcf
-truth=$OUTPUT_DIR/truth_temp.vcf
+## Filtering PASS variants:
+
+echo -e "[Running Information]: Filtering PASS variant\n"
+
+grep "PASS\|#" $OUTPUT_DIR/snv_indel_temp.vcf > $OUTPUT_DIR/"snv_indel.pass.vcf"
+
+snvindel=$OUTPUT_DIR/"snv_indel.pass.vcf"
 
 # Sorting vcf files
 echo -e "[Running Information]: sorting vcf files\n"
-bcftools sort $snv -o $OUTPUT_DIR/`basename $snv .vcf.gz`".sort.vcf.gz" -O z
-bcftools sort $indel -o $OUTPUT_DIR/`basename $indel .vcf.gz`".sort.vcf.gz" -O z
-bcftools sort $truth -o $OUTPUT_DIR/`basename $truth .vcf.gz`".sort.vcf.gz" -O z
 
-snv=`basename $snv .vcf.gz`".sort.vcf.gz"
-indel=`basename $indel .vcf.gz`".sort.vcf.gz"
-truth=`basename $truth .vcf.gz`".sort.vcf.gz"
+bcftools sort $snvindel -o $OUTPUT_DIR/"snv_indel.pass.sort.vcf.gz" -O z
+bcftools sort $truth -o $OUTPUT_DIR/truth_temp.sort.vcf.gz -O z
+
+snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.vcf.gz"
+truth=$OUTPUT_DIR/"truth_temp.sort.vcf.gz"
 
 # indexing sorted vcf files
 echo -e "[Running Information]: indexing vcf files\n"
-bcftools index -f -o $OUTPUT_DIR/$snv".csi" $OUTPUT_DIR/$snv
-bcftools index -f -o $OUTPUT_DIR/$indel".csi" $OUTPUT_DIR/$indel
-bcftools index -f -o $OUTPUT_DIR/$truth".csi" $OUTPUT_DIR/$truth
 
-# Merging SNV.vcf & INDEL.vcf (ONLY IF THERE ARE TWO SEPERATE FILES!)
-echo -e "[Running Information]: concatenate vcf files\n"
-bcftools concat -a $OUTPUT_DIR/$snv $OUTPUT_DIR/$indel -O z -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
+bcftools index -f -o $snvindel".csi" $snvindel
+bcftools index -f -o $truth".csi" $truth
 
 # Preparing for normalization
 echo -e "[Running Information]: preparing for normalizing\n"
-echo -e "[Running Information]: indexing...]"
+echo -e "[Running Information]: multimerge...]"
 
 export HGREF=$FASTA
 
-bcftools index -f -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz.csi" $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
+multimerge $snvindel -r $HGREF -o $OUTPUT_DIR/"snv_indel.pass.sort.prep.vcf.gz" --calls-only=1
+multimerge $truth -r $HGREF -o $OUTPUT_DIR/truth_temp.sort.prep.vcf.gz --calls-only=1
 
-echo -e "[Running Information]: multimerge...]"
-
-multimerge $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz" -r $HGREF -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.prep.vcf" --calls-only=1
-multimerge $OUTPUT_DIR/$truth -r $HGREF -o $OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz" --calls-only=1
+snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.vcf.gz"
+truth=$OUTPUT_DIR/"truth_temp.sort.prep.vcf.gz"
 
 # Normalizing vcfs:
 echo -e "[Running Information]: normalizing test file\n"
-merge_file=$OUTPUT_DIR/$SAMPLE_NAME"_merge.prep.vcf"
-truth=$OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz"
 
-pre.py $merge_file $OUTPUT_DIR/`basename $merge_file _merge.prep.vcf`".norm.vcf.gz" -L --decompose --somatic --pass-only
+pre.py $snvindel $OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.vcf.gz" -L --decompose --somatic
 
 echo -e "\n[Running Information]: normalizing truth file\n"
 
-pre.py $truth $OUTPUT_DIR/`basename $truth .vcf.gz`".norm.vcf.gz" -L --decompose --somatic --pass-only
+pre.py $truth $OUTPUT_DIR/truth_temp.sort.prep.norm.vcf.gz -L --decompose --somatic
+
+snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.vcf.gz"
+truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.vcf.gz"
 
 # Running ingestion script:
 echo -e "[Running Information]: Running ingestion_snv.py script \n"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/`basename $merge_file .vcf` $OUTPUT_DIR/`basename $merge_file _merge.prep.vcf`".norm.vcf.gz"
+python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"snv_indel.pass.sort.prep.norm" $snvindel
 
-python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/`basename $truth .vcf.gz` $OUTPUT_DIR/`basename $truth .vcf.gz`".norm.vcf.gz"
+python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"truth_temp.sort.prep.norm" $truth
+
+snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.filtered.vcf"
+truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.filtered.vcf"
 
 # Running som.py:
 echo -e "[Running Information]: Running som.py evaluation script\n"
 
-som.py $OUTPUT_DIR/`basename $truth .vcf.gz`".filtered.vcf" $OUTPUT_DIR/`basename $merge_file .vcf`".filtered.vcf" -o $OUTPUT_DIR/`basename $merge_file .vcf`"eval.txt" --verbose -N
+som.py $truth $snvindel -o $OUTPUT_DIR/$OUT_NAME --verbose -N
 
 echo -e "[Running Information]: script ended successfully\n"
 
 # Running SV ingestion script:
 
-echo -e "[Running Information]: Running ingestion SV script\n"
+#echo -e "[Running Information]: Running ingestion SV script\n"
 
 # Cleaning
 echo -e "[Running Information]: Cleaning files\n"
+
 rm $OUTPUT_DIR/*{tbi,csi,json}
-#rm $OUTPUT_DIR/*{vcf,vcf.gz}
 
-#run ${repo_path} "/Users/daphnevanbeek/Projects/eucancan/COLO_RESULTS/vcfs/Hartwig/5.19/COLO829v003T.purple.sv.vcf.gz" "COLO829v003T" "/Users/daphnevanbeek/Projects/eucancan/COLO_RESULTS/dataframes/hartwig.csv"
+if [[ "$KEEP" = false ]];then
+    rm $OUTPUT_DIR/*{vcf,vcf.gz}
+fi
 
-# Get the samplename:
-#bcftools query -l test_merge.norm.vcf.gz
 
-# example command:
-
-#bash ../golden-datasets-fork-tom/golden-datasets/scripts/ingest_snv.sh -t test_truth.vcf -s results_dream/CURIE/insilico_1_snvs.vcf -i results_dream/CURIE/insilico_1_indels.vcf -o . -c test_ingestions_sh/config.txt  -n test -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
-
-# test with curie colo files:
-#bash ../golden-datasets-fork-tom/golden-datasets/scripts/ingest_snv.sh -t ../Benchmark/test_truth.vcf -s curie_colo829_snps.sample.vcf -i curie_colo829_indels.sample.vcf -o . -c ../Benchmark/test_ingestions_sh/config.txt  -n COLO829T -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
-
-# bcftools norm -m -any ./COLO829T_merge.vcf > test.multi.vcf
-# pre.py test.multi.vcf test.multi.norm.vcf -L --decompose --somatic --pass-only
-# pre.py COLO829T_merge.vcf test_output.vcf -L --decompose --somatic --pass-only
+# Example commands
+# SCRIPT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/golden-datasets-fork-tom/golden-datasets/scripts
+# OUT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/test_ingestions_sh
+# TRUTH=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz
+# SNV=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/colo829/curie_colo829_snps.sample.vcf.gz
+# INDEL=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/colo829/curie_colo829_indels.sample.vcf.gz
+# SNV_INDEL=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/colo829/head_filtered_Mutect2_ERR2752450_vs_ERR2752449_snpEff.ann.vcf.gz
 #
-# hap.py test.multi.vcf test.multi.norm.vcf -L --decompose --somatic --pass-only
-# hap.py COLO829T_merge.vcf ../Benchmark/test_truth.vcf -o test.multi.norm.vcf -L --decompose --somatic --pass-only --unhappy
+# ## with mixed indels & snvs
+# bash $SCRIPT_DIR/temp_ingest_snv.sh --truth $TRUTH --snvindel $SNV_INDEL --outdir $OUT_DIR --outname test_multisample --sname COLO829T  --keep -f /data/annotations/pipelines/Human/hg19/genome/hg19.fa
 #
-# /data/users/tgutman/.conda/envs/test_benchmark/bin/vcfcheck COLO829T_merge.vcf --check-bcf-errors 1
-# /data/users/tgutman/.conda/envs/test_benchmark/bin/vcfcheck test.multi.vcf --check-bcf-errors 1
-
-#handle header problems with truth files:
-# Add the contig info by hand with vim - with chr (example: chr1,chr2)
-# awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' truth.snvs.synthetic.challenge.set2.vcf > test_truth.vcf
-
-#handle mulisample files:
-
-# bcftools view -c1 -Oz -s COLO829T -o curie_colo829_indels.sample.vcf curie_colo829_indels.vcf
-# bcftools view -c1 -Oz -s COLO829T -o curie_colo829_snps.sample.vcf curie_colo829_snps.vcf
-#
-# gunzip $OUTPUT_DIR/$dataset/$sample_vcf"_multisample.hg19_multianno.rec.vcf.gz"
-#
-# ${GATK_DIR}/gatk --java-options "-Xmx20g" SelectVariants \
-#     -O test.multi.vcf \
-#     -V COLO829T_merge.vcf \
-#     --select-type-to-include SNP --select-type-to-include INDEL --exclude-filtered --select-type-to-exclude MNP
-
-# Running Dream data challenge:
-
-#SCRIPT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/golden-datasets-fork-tom/golden-datasets/scripts/
-#OUT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/test_ingestions_sh
-
-#bash $SCRIPT_DIR/ingest_snv.sh -t truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz -s test_indel.vcf.gz -i test_snv.vcf.gz -o $OUT_DIR  -n curie_dream_1 -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
-
-
-#colo samples:
-
-#OUT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/colo829/test_ingestions_sh
-
-#bash $SCRIPT_DIR/ingest_snv.sh -t ../truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz -s curie_colo829_snps.sample.vcf -i curie_colo829_indels.sample.vcf -o $OUT_DIR  -n curie_colo_test -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
-#for sample_vcf in `bcftools query -l COLOEUCANcanT.purple.somatic.vcf.gz`; do
-#echo $sample_vcf
-#bcftools view  -Oz -s $sample_vcf -o "COLOEUCANcanT.purple.somatic"${sample_vcf}".vcf.gz" COLOEUCANcanT.purple.somatic.vcf.gz
-#done
+# # with split snvs & indels
+# bash $SCRIPT_DIR/temp_ingest_snv.sh --truth $TRUTH --snv $SNV --indel $INDEL --outdir $OUT_DIR --outname test_multisample --keep -f /data/annotations/pipelines/Human/hg19/genome/hg19.fa
