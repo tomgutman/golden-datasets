@@ -76,11 +76,15 @@ fi
 ## for indels
 if [[ $indel == *.vcf ]];then
     grep "PASS\|#" $indel > $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    indel=$OUTPUT_DIR/`basename $indel .vcf`
+    #gzip $OUTPUT_DIR/$indel
+    gzip $OUTPUT_DIR/`basename $indel`".pass.vcf"
     indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
 elif [[ $indel == *.vcf.gz ]];then
     zcat $indel | grep "PASS\|#" > $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
+    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`
+    #gzip $OUTPUT_DIR/$indel
+    gzip $OUTPUT_DIR/`basename $indel`".pass.vcf"
     indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
 fi
 
@@ -215,8 +219,6 @@ rm $OUTPUT_DIR/*{tbi,csi,json}
 #OUT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/colo829/test_ingestions_sh
 
 #bash $SCRIPT_DIR/ingest_snv.sh -t ../truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz -s curie_colo829_snps.sample.vcf -i curie_colo829_indels.sample.vcf -o $OUT_DIR  -n curie_colo_test -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
-
-
 #for sample_vcf in `bcftools query -l COLOEUCANcanT.purple.somatic.vcf.gz`; do
 #echo $sample_vcf
 #bcftools view  -Oz -s $sample_vcf -o "COLOEUCANcanT.purple.somatic"${sample_vcf}".vcf.gz" COLOEUCANcanT.purple.somatic.vcf.gz

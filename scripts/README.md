@@ -92,9 +92,10 @@ To benchmark snv calls from different centers, multipe steps are required:
 
 **Usage**
 
+
 ```
 bash ingest_snv.sh -h
-		    -t truth_file.vcf
+		   -t truth_file.vcf
                    -s snv.vcf
                    -i indel.vcf
                    -f ref_fasta.fa
@@ -103,3 +104,4 @@ bash ingest_snv.sh -h
                    -k (to keep intermediates files)
 
 ```
+Note: Truth file and snv/indel file should have different names
