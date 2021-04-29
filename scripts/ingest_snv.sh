@@ -58,17 +58,31 @@ if [ `bcftools query -l $snv |wc -l` -gt 1 ] || [ `bcftools query -l $truth |wc 
     echo "the vcf must be single sample "
     exit
 fi
-# bcftools view -c1 -Oz -s COLO829T -o curie_colo829_indels.sample.vcf curie_colo829_indels.vcf
 
+# Keeping only PASS variants:
+echo -e "[Running Information]: filtering PASS variants\n"
 
-# if [ `$BCF_DIR/bcftools query -l $file |wc -l` -gt 1 ] ; then
-#     echo $ID "is a multisample"
-#     echo `$BCF_DIR/bcftools query -l $file`
-#     for sample_vcf in `$BCF_DIR/bcftools query -l $file`; do
-#         echo $sample_vcf
-#
-#         $BCF_DIR/bcftools view -c1 -Oz -s $sample_vcf -o $OUTPUT_DIR/$dataset/$sample_vcf"_multisample.hg19_multianno.vcf.gz" $file
-#         gunzip $OUTPUT_DIR/$dataset/$sample_vcf"_multisample.hg19_multianno.vcf.gz"
+## for SNV
+if [[ $snv == *.vcf ]];then
+    grep "PASS\|#" $snv > $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
+    snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
+elif [[ $snv == *.vcf.gz ]];then
+    zcat $snv | grep "PASS\|#" > $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
+    snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
+fi
+
+## for indels
+if [[ $indel == *.vcf ]];then
+    grep "PASS\|#" $indel > $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
+elif [[ $indel == *.vcf.gz ]];then
+    zcat $indel | grep "PASS\|#" > $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
+fi
 
 # Replace the 'chr' with '' in the VCFs
 #zcat $snv | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/snv_temp.vcf
@@ -107,27 +121,23 @@ echo -e "[Running Information]: preparing for normalizing\n"
 echo -e "[Running Information]: indexing...]"
 
 export HGREF=$FASTA
-#export HGREF=/data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
 
 bcftools index -f -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz.csi" $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
-#bcftools index -f $truth
 
 echo -e "[Running Information]: multimerge...]"
 
-#echo $truth
-#echo $OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz"
-multimerge $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz" -r $HGREF -f true -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.prep.vcf" --process-full=1
-multimerge $OUTPUT_DIR/$truth -r $HGREF -o $OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz" --process-full=1
+multimerge $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz" -r $HGREF -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.prep.vcf" --calls-only=1
+multimerge $OUTPUT_DIR/$truth -r $HGREF -o $OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz" --calls-only=1
 
 # Normalizing vcfs:
 echo -e "[Running Information]: normalizing test file\n"
 merge_file=$OUTPUT_DIR/$SAMPLE_NAME"_merge.prep.vcf"
+truth=$OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz"
 
 pre.py $merge_file $OUTPUT_DIR/`basename $merge_file _merge.prep.vcf`".norm.vcf.gz" -L --decompose --somatic --pass-only
 
 echo -e "\n[Running Information]: normalizing truth file\n"
 
-truth=$OUTPUT_DIR/`basename $truth .vcf.gz`".prep.vcf.gz"
 pre.py $truth $OUTPUT_DIR/`basename $truth .vcf.gz`".norm.vcf.gz" -L --decompose --somatic --pass-only
 
 # Running ingestion script:
@@ -151,8 +161,8 @@ echo -e "[Running Information]: Running ingestion SV script\n"
 
 # Cleaning
 echo -e "[Running Information]: Cleaning files\n"
-rm $OUTPUT_DIR/*{tbi,csi,json,vcf,vcf.gz}
-rm $truth".csi"
+rm $OUTPUT_DIR/*{tbi,csi,json}
+#rm $OUTPUT_DIR/*{vcf,vcf.gz}
 
 #run ${repo_path} "/Users/daphnevanbeek/Projects/eucancan/COLO_RESULTS/vcfs/Hartwig/5.19/COLO829v003T.purple.sv.vcf.gz" "COLO829v003T" "/Users/daphnevanbeek/Projects/eucancan/COLO_RESULTS/dataframes/hartwig.csv"
 
@@ -200,4 +210,14 @@ rm $truth".csi"
 #bash $SCRIPT_DIR/ingest_snv.sh -t truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz -s test_indel.vcf.gz -i test_snv.vcf.gz -o $OUT_DIR  -n curie_dream_1 -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
 
 
-#/!\ ajouter etape de split multisample if it is the case
+#colo samples:
+
+#OUT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/colo829/test_ingestions_sh
+
+#bash $SCRIPT_DIR/ingest_snv.sh -t ../truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz -s curie_colo829_snps.sample.vcf -i curie_colo829_indels.sample.vcf -o $OUT_DIR  -n curie_colo_test -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
+
+
+#for sample_vcf in `bcftools query -l COLOEUCANcanT.purple.somatic.vcf.gz`; do
+#echo $sample_vcf
+#bcftools view  -Oz -s $sample_vcf -o "COLOEUCANcanT.purple.somatic"${sample_vcf}".vcf.gz" COLOEUCANcanT.purple.somatic.vcf.gz
+#done
