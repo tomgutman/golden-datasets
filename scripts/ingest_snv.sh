@@ -9,6 +9,7 @@ while getopts "t:s:i:v:f:o:n:kh" option; do
         s) snv=${OPTARG};;
         i) indel=${OPTARG};;
         v) sv=${OPTARG};;
+        m) snvindel=${OPTARG};;
         u) truth_sv=${OPTARG};;
         f) FASTA=${OPTARG};;
         o) OUTPUT_DIR=${OPTARG};;
@@ -18,6 +19,7 @@ while getopts "t:s:i:v:f:o:n:kh" option; do
             echo "bash ingest_snv.sh -t truth_file.vcf"
             echo "                   -s snv.vcf"
             echo "                   -i indel.vcf"
+            echo "                   -m indels_and_vcfs.vcf"
             echo "                   -v sv.vcf"
             echo "                   -u truth_sv.vcf"
             echo "                   -f ref_fasta.fa"
@@ -34,12 +36,17 @@ echo "Truth File:" $truth
 echo "SNV vcf file:" $snv
 echo "INDEL vcf file:" $indel
 echo "SV vcf file:" $sv
+echo "SNV + INDEL vcf file:" $snvindel
 echo "TRUTH SV file:" $truth_sv
 echo "Reference fasta file:" $FASTA
 echo "output path:" $OUTPUT_DIR
 echo "sample Name:" $SAMPLE_NAME
 echo "keep intermediate files ?:" $KEEP
 echo " "
+
+if [ -z ${snvindel+x} ]; then echo "snvindel is unset"; else echo "snvindel is set to '$snvindel'"; fi
+if [ -z ${snv+x} ]; then echo "snv is unset"; else echo "snv is set to '$snv'"; fi
+if [ -z ${indel+x} ]; then echo "indel is unset"; else echo "indel is set to '$indel'"; fi
 
 # Create output dir:
 
