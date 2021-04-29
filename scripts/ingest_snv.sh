@@ -33,9 +33,11 @@ done
 echo " "
 echo -e "[General Information]:\n"
 echo "Truth File:" $truth
-
-echo "SNV vcf file:" $snv
-echo "INDEL vcf file:" $indel
+if [ ! -z ${snv+x} ]; then echo "SNV vcf file: '$snv'"; fi
+if [ ! -z ${indel+x} ]; then echo "INDEL vcf file: '$indel'"; fi
+if [ ! -z ${snvindel+x} ]; then echo "SNV + INDEL vcf file: '$snvindel'"; fi
+#echo "SNV vcf file:" $snv
+#echo "INDEL vcf file:" $indel
 echo "SV vcf file:" $sv
 echo "SNV + INDEL vcf file:" $snvindel
 echo "TRUTH SV file:" $truth_sv
@@ -45,9 +47,13 @@ echo "sample Name:" $SAMPLE_NAME
 echo "keep intermediate files ?:" $KEEP
 echo " "
 
-if [ ! -z ${snvindel+x} ]; then echo "snvindel is set to '$snvindel'"; else echo "snvindel is unset"; fi
-if [ ! -z ${snv+x} ]; then echo "snv is set to '$snv'"; else echo "snv is unset"; fi
-if [ ! -z ${indel+x} ]; then echo "indel is set to '$indel'"; else echo "indel is unset"; fi
+#if [ ! -z ${snvindel+x} ]; then echo "snvindel is set to '$snvindel'"; else echo "snvindel is unset"; fi
+#if [ ! -z ${snv+x} ]; then echo "snv is set to '$snv'"; else echo "snv is unset"; fi
+#if [ ! -z ${indel+x} ]; then echo "indel is set to '$indel'"; else echo "indel is unset"; fi
+
+# If SNV + INDELS are combined in input, set SNV variable and ignore the indel variable.
+if [ -z ${snvindel+x} ]; then snv=$snvindel; fi
+echo "Resetting snv variable to snvindel: " $snv
 
 # Create output dir:
 
@@ -71,25 +77,27 @@ fi
 echo -e "[Running Information]: filtering PASS variants\n"
 
 ## for SNV
-if [[ $snv == *.vcf ]];then
+if [[ $snv == *.vcf ]]; then
     grep "PASS\|#" $snv > $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
     gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
     snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
-elif [[ $snv == *.vcf.gz ]];then
+elif [[ $snv == *.vcf.gz ]]; then
     zcat $snv | grep "PASS\|#" > $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
     gzip $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
     snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
 fi
 
-## for indels
-if [[ $indel == *.vcf ]];then
-    grep "PASS\|#" $indel > $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
-    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
-elif [[ $indel == *.vcf.gz ]];then
-    zcat $indel | grep "PASS\|#" > $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
-    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
+## for indels, skip if snvindels is set and indels is unset
+if [ ! -z ${snvindel+x} ]; then
+  if [[ $indel == *.vcf ]]; then
+      grep "PASS\|#" $indel > $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+      gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+      indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
+  elif [[ $indel == *.vcf.gz ]]; then
+      zcat $indel | grep "PASS\|#" > $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
+      gzip $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
+      indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
+  fi
 fi
 
 # Replace the 'chr' with '' in the VCFs
@@ -97,7 +105,9 @@ fi
 #zcat $indel | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/indel_temp.vcf
 #zcat $truth | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/truth_temp.vcf
 zcat $snv | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/snv_temp.vcf
-zcat $indel | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/indel_temp.vcf
+if [ ! -z ${snvindel+x} ]; then
+  zcat $indel | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/indel_temp.vcf
+fi
 zcat $truth | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/truth_temp.vcf
 
 snv=$OUTPUT_DIR/snv_temp.vcf
@@ -107,7 +117,9 @@ truth=$OUTPUT_DIR/truth_temp.vcf
 # Sorting vcf files
 echo -e "[Running Information]: sorting vcf files\n"
 bcftools sort $snv -o $OUTPUT_DIR/`basename $snv .vcf.gz`".sort.vcf.gz" -O z
-bcftools sort $indel -o $OUTPUT_DIR/`basename $indel .vcf.gz`".sort.vcf.gz" -O z
+if [ ! -z ${snvindel+x} ]; then
+  bcftools sort $indel -o $OUTPUT_DIR/`basename $indel .vcf.gz`".sort.vcf.gz" -O z
+fi
 bcftools sort $truth -o $OUTPUT_DIR/`basename $truth .vcf.gz`".sort.vcf.gz" -O z
 
 snv=`basename $snv .vcf.gz`".sort.vcf.gz"
@@ -117,12 +129,18 @@ truth=`basename $truth .vcf.gz`".sort.vcf.gz"
 # indexing sorted vcf files
 echo -e "[Running Information]: indexing vcf files\n"
 bcftools index -f -o $OUTPUT_DIR/$snv".csi" $OUTPUT_DIR/$snv
-bcftools index -f -o $OUTPUT_DIR/$indel".csi" $OUTPUT_DIR/$indel
+if [ ! -z ${snvindel+x} ]; then
+  bcftools index -f -o $OUTPUT_DIR/$indel".csi" $OUTPUT_DIR/$indel
+fi
 bcftools index -f -o $OUTPUT_DIR/$truth".csi" $OUTPUT_DIR/$truth
 
-# Merging SNV.vcf & INDEL.vcf:
-echo -e "[Running Information]: concatenate vcf files\n"
-bcftools concat -a $OUTPUT_DIR/$snv $OUTPUT_DIR/$indel -O z -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
+# Merging SNV.vcf & INDEL.vcf (ONLY IF THERE ARE TWO SEPERATE FILES!)
+if [ ! -z ${snvindel+x} ]; then
+  echo -e "[Running Information]: concatenate vcf files\n"
+  bcftools concat -a $OUTPUT_DIR/$snv $OUTPUT_DIR/$indel -O z -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
+else
+  cp $OUTPUT_DIR/$snv $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
+fi
 
 # Preparing for normalization
 echo -e "[Running Information]: preparing for normalizing\n"
