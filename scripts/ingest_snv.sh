@@ -69,7 +69,7 @@ if [[ $snv == *.vcf ]];then
     snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
 elif [[ $snv == *.vcf.gz ]];then
     zcat $snv | grep "PASS\|#" > $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
     snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
 fi
 
@@ -80,7 +80,7 @@ if [[ $indel == *.vcf ]];then
     indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
 elif [[ $indel == *.vcf.gz ]];then
     zcat $indel | grep "PASS\|#" > $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
     indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
 fi
 
