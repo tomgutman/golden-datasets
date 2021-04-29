@@ -72,6 +72,13 @@ To use it, simply use:
 
 ```shell
 conda create -n snv_bench -f golden-datasets/scripts/environment_snv.yml
+```
+or
+```
+conda env create -n snv_bench -f golden-datasets/scripts/environment_snv.yml
+```
+And then:
+```
 conda activate snv_bench
 ```
 
@@ -85,14 +92,16 @@ To benchmark snv calls from different centers, multipe steps are required:
 
 **Usage**
 
+
 ```
 bash ingest_snv.sh -h
-bash tmb_dragon.sh -t truth_file.vcf
+		   -t truth_file.vcf
                    -s snv.vcf
                    -i indel.vcf
                    -f ref_fasta.fa
-                   -o /OUTPUT_DIR/PATH
-                   -n Sample name
+                   -o Path where output directory will be created
+                   -n Name of output directory
                    -k (to keep intermediates files)
 
 ```
+Note: Truth file and snv/indel file should have different names

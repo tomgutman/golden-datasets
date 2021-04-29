@@ -9,6 +9,7 @@ while getopts "t:s:i:v:f:o:n:kh" option; do
         s) snv=${OPTARG};;
         i) indel=${OPTARG};;
         v) sv=${OPTARG};;
+        m) snvindel=${OPTARG};;
         u) truth_sv=${OPTARG};;
         f) FASTA=${OPTARG};;
         o) OUTPUT_DIR=${OPTARG};;
@@ -18,6 +19,7 @@ while getopts "t:s:i:v:f:o:n:kh" option; do
             echo "bash ingest_snv.sh -t truth_file.vcf"
             echo "                   -s snv.vcf"
             echo "                   -i indel.vcf"
+            echo "                   -m indels_and_vcfs.vcf"
             echo "                   -v sv.vcf"
             echo "                   -u truth_sv.vcf"
             echo "                   -f ref_fasta.fa"
@@ -34,12 +36,21 @@ echo "Truth File:" $truth
 echo "SNV vcf file:" $snv
 echo "INDEL vcf file:" $indel
 echo "SV vcf file:" $sv
+echo "SNV + INDEL vcf file:" $snvindel
 echo "TRUTH SV file:" $truth_sv
 echo "Reference fasta file:" $FASTA
 echo "output path:" $OUTPUT_DIR
 echo "sample Name:" $SAMPLE_NAME
 echo "keep intermediate files ?:" $KEEP
 echo " "
+
+#if [ ! -z ${snvindel+x} ]; then echo "snvindel is set to '$snvindel'"; else echo "snvindel is unset"; fi
+#if [ ! -z ${snv+x} ]; then echo "snv is set to '$snv'"; else echo "snv is unset"; fi
+#if [ ! -z ${indel+x} ]; then echo "indel is set to '$indel'"; else echo "indel is unset"; fi
+
+# If SNV + INDELS are combined in input, set SNV variable and ignore the indel variable.
+#if [ -z ${snvindel+x} ]; then snv=$snvindel; fi
+#echo "Resetting snv variable to snvindel: " $snv
 
 # Create output dir:
 
@@ -63,26 +74,31 @@ fi
 echo -e "[Running Information]: filtering PASS variants\n"
 
 ## for SNV
-if [[ $snv == *.vcf ]];then
+if [[ $snv == *.vcf ]]; then
     grep "PASS\|#" $snv > $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
     gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
     snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
-elif [[ $snv == *.vcf.gz ]];then
+elif [[ $snv == *.vcf.gz ]]; then
     zcat $snv | grep "PASS\|#" > $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $snv .vcf`".pass.vcf"
+    gzip $OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf"
     snv=$OUTPUT_DIR/`basename $snv .vcf.gz`".pass.vcf.gz"
 fi
 
-## for indels
-if [[ $indel == *.vcf ]];then
+## for indels, skip if snvindels is set and indels is unset
+if [[ $indel == *.vcf ]]; then
     grep "PASS\|#" $indel > $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    indel=$OUTPUT_DIR/`basename $indel .vcf`
+    #gzip $OUTPUT_DIR/$indel
+    gzip $OUTPUT_DIR/`basename $indel`".pass.vcf"
     indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
-elif [[ $indel == *.vcf.gz ]];then
+elif [[ $indel == *.vcf.gz ]]; then
     zcat $indel | grep "PASS\|#" > $OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf"
-    gzip $OUTPUT_DIR/`basename $indel .vcf`".pass.vcf"
+    indel=$OUTPUT_DIR/`basename $indel .vcf.gz`
+    #gzip $OUTPUT_DIR/$indel
+    gzip $OUTPUT_DIR/`basename $indel`".pass.vcf"
     indel=$OUTPUT_DIR/`basename $indel .vcf.gz`".pass.vcf.gz"
 fi
+
 
 # Replace the 'chr' with '' in the VCFs
 #zcat $snv | awk '{gsub(/^chr/,""); print}' | awk '{gsub(/ID=chr/,"ID="); print}' > $OUTPUT_DIR/snv_temp.vcf
@@ -112,7 +128,7 @@ bcftools index -f -o $OUTPUT_DIR/$snv".csi" $OUTPUT_DIR/$snv
 bcftools index -f -o $OUTPUT_DIR/$indel".csi" $OUTPUT_DIR/$indel
 bcftools index -f -o $OUTPUT_DIR/$truth".csi" $OUTPUT_DIR/$truth
 
-# Merging SNV.vcf & INDEL.vcf:
+# Merging SNV.vcf & INDEL.vcf (ONLY IF THERE ARE TWO SEPERATE FILES!)
 echo -e "[Running Information]: concatenate vcf files\n"
 bcftools concat -a $OUTPUT_DIR/$snv $OUTPUT_DIR/$indel -O z -o $OUTPUT_DIR/$SAMPLE_NAME"_merge.vcf.gz"
 
@@ -215,8 +231,6 @@ rm $OUTPUT_DIR/*{tbi,csi,json}
 #OUT_DIR=/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/colo829/test_ingestions_sh
 
 #bash $SCRIPT_DIR/ingest_snv.sh -t ../truth_dream/truth.snvs.synthetic.challenge.set1.chr.vcf.gz -s curie_colo829_snps.sample.vcf -i curie_colo829_indels.sample.vcf -o $OUT_DIR  -n curie_colo_test -f /data/annotations/pipelines/Human/hg19_base/genome/hg19_base.fa
-
-
 #for sample_vcf in `bcftools query -l COLOEUCANcanT.purple.somatic.vcf.gz`; do
 #echo $sample_vcf
 #bcftools view  -Oz -s $sample_vcf -o "COLOEUCANcanT.purple.somatic"${sample_vcf}".vcf.gz" COLOEUCANcanT.purple.somatic.vcf.gz
