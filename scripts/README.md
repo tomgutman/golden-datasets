@@ -99,8 +99,8 @@ bash ingest_snv.sh -h
                    -s snv.vcf
                    -i indel.vcf
                    -f ref_fasta.fa
-                   -o /OUTPUT_DIR/PATH
-                   -n Sample name
+                   -o Path where output directory will be created
+                   -n Name of output directory
                    -k (to keep intermediates files)
 
 ```
