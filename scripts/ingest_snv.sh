@@ -2,7 +2,7 @@
 set -e
 #EUCANCAN SNV & INDEL vcf handling
 KEEP=false
-
+CPU=1
 while [ $# -gt 0 ] ; do
   case $1 in
       -t | --truth) truth="$2";;
@@ -15,19 +15,21 @@ while [ $# -gt 0 ] ; do
       -d | --outdir) OUTPUT_DIR="$2";;
       -o | --outname) OUT_NAME="$2";;
       -n | --sname) SAMPLE_NAME="$2";;
+      -c | --cpu) CPU="$2";;
       -k | --keep) KEEP=true;;
       -h | --help)  echo "Usage:"
-          echo "bash ingest_snv.sh --truth truth_file.vcf"
-          echo "                   --snv snv.vcf"
-          echo "                   --indel indel.vcf"
-          echo "                   --snvindel indels_and_vcfs.vcf"
-          echo "                   --sv sv.vcf"
-          echo "                   --truth_sv truth_sv.vcf"
-          echo "                   --fasta ref_fasta.fa"
-          echo "                   --outdir /OUTPUT_DIR/PATH"
-          echo "                   --outname output file name"
-          echo "                   --sname vcf sample name"
-          echo "                   --keep (to keep intermediates files)"
+          echo "bash ingest_snv.sh -t, --truth truth_file.vcf"
+          echo "                   -s, --snv snv.vcf"
+          echo "                   -i, --indel indel.vcf"
+          echo "                   -m, --snvindel indels_and_vcfs.vcf"
+          echo "                   -v, --sv sv.vcf"
+          echo "                   -u, --truth_sv truth_sv.vcf"
+          echo "                   -f, --fasta ref_fasta.fa"
+          echo "                   -d, --outdir /OUTPUT_DIR/PATH"
+          echo "                   -o, --outname output file name"
+          echo "                   -n, --sname vcf sample name"
+          echo "                   -c, --cpu number of threads"
+          echo "                   -k, --keep (to keep intermediates files)"
           exit
 
   esac
@@ -47,6 +49,7 @@ echo "output path:" $OUTPUT_DIR
 echo "output file Name:" $OUT_NAME
 echo "vcf sample name:" $SAMPLE_NAME
 echo "keep intermediate files ?:" $KEEP
+echo "Number of threads:" $CPU
 echo " "
 
 # Create output dir:
@@ -64,28 +67,22 @@ OUTPUT_DIR=$OUTPUT_DIR/$OUT_NAME
 if [[ ! -z "$snv" && ! -z "$indel" ]]; then
     echo "snv and indel not empty"
     if [[ $snv == *.vcf ]]; then
-        bgzip -c $snv > $OUTPUT_DIR/$snv".gz"
+        bgzip -@ $CPU-c $snv > $OUTPUT_DIR/$snv".gz"
         snv=$OUTPUT_DIR/$snv".gz"
     fi
     if [[ $indel == *.vcf ]]; then
-        bgzip -c $indel > $OUTPUT_DIR/$indel".gz"
+        bgzip -@ $CPU -c $indel > $OUTPUT_DIR/$indel".gz"
         indel=$OUTPUT_DIR/$indel".gz"
     fi
 
     echo -e "[Running Information]: indexing vcf files\n"
-    bcftools index -f -o $snv".csi" $snv
-    bcftools index -f -o $indel".csi" $indel
+    bcftools index --threads $CPU -f -o $snv".csi" $snv
+    bcftools index --threads $CPU -f -o $indel".csi" $indel
 
     echo -e "[Running Information]: concatenate vcf files\n"
-    bcftools concat -a $snv $indel -O z -o $OUTPUT_DIR/"snv_indel_temp.vcf.gz"
+    bcftools concat -a $snv $indel -O z -o $OUTPUT_DIR/"snv_indel_temp.vcf.gz" --threads $CPU
     snvindel=$OUTPUT_DIR/"snv_indel_temp.vcf.gz"
 fi
-
-echo $snvindel
-#bgzip
-# index
-# concat
-
 
 
 # If SNV_INDEL:
@@ -114,7 +111,7 @@ if [[ `bcftools query -l $snvindel |wc -l` -gt 1  && -z "$SAMPLE_NAME" ]]; then
     exit
 elif [[ `bcftools query -l $snvindel |wc -l` -gt 1  && ! -z "$SAMPLE_NAME" ]]; then
     echo $SAMPLE_NAME
-    bcftools view -c1 -O z -s $SAMPLE_NAME -o $OUTPUT_DIR/snv_indel_temp.sample.vcf.gz $snvindel
+    bcftools view -c1 -O z -s $SAMPLE_NAME -o $OUTPUT_DIR/snv_indel_temp.sample.vcf.gz $snvindel --threads $CPU
     snvindel=$OUTPUT_DIR/snv_indel_temp.sample.vcf.gz
 fi
 
@@ -145,8 +142,8 @@ truth=$OUTPUT_DIR/"truth_temp.sort.vcf.gz"
 # indexing sorted vcf files
 echo -e "[Running Information]: indexing vcf files\n"
 
-bcftools index -f -o $snvindel".csi" $snvindel
-bcftools index -f -o $truth".csi" $truth
+bcftools index -f -o $snvindel".csi" $snvindel --threads $CPU
+bcftools index -f -o $truth".csi" $truth --threads $CPU
 
 # Preparing for normalization
 echo -e "[Running Information]: preparing for normalizing\n"
@@ -163,11 +160,11 @@ truth=$OUTPUT_DIR/"truth_temp.sort.prep.vcf.gz"
 # Normalizing vcfs:
 echo -e "[Running Information]: normalizing test file\n"
 
-pre.py $snvindel $OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.vcf.gz" -L --decompose --somatic
+pre.py $snvindel $OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.vcf.gz" -L --decompose --somatic --threads $CPU
 
 echo -e "\n[Running Information]: normalizing truth file\n"
 
-pre.py $truth $OUTPUT_DIR/truth_temp.sort.prep.norm.vcf.gz -L --decompose --somatic
+pre.py $truth $OUTPUT_DIR/truth_temp.sort.prep.norm.vcf.gz -L --decompose --somatic --threads $CPU
 
 snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.vcf.gz"
 truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.vcf.gz"
