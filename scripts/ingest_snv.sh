@@ -2,6 +2,7 @@
 set -e
 #EUCANCAN SNV & INDEL vcf handling
 KEEP=false
+PASS=false
 CPU=1
 while [ $# -gt 0 ] ; do
   case $1 in
@@ -15,6 +16,7 @@ while [ $# -gt 0 ] ; do
       -d | --outdir) OUTPUT_DIR="$2";;
       -o | --outname) OUT_NAME="$2";;
       -n | --sname) SAMPLE_NAME="$2";;
+      -p | --pass) PASS=true;;
       -c | --cpu) CPU="$2";;
       -k | --keep) KEEP=true;;
       -h | --help)  echo "Usage:"
@@ -28,6 +30,7 @@ while [ $# -gt 0 ] ; do
           echo "                   -d, --outdir /OUTPUT_DIR/PATH"
           echo "                   -o, --outname output file name"
           echo "                   -n, --sname vcf sample name"
+          echo "                   -p, --pass keep only the pass variants"
           echo "                   -c, --cpu number of threads"
           echo "                   -k, --keep (to keep intermediates files)"
           exit
@@ -48,9 +51,23 @@ echo "Reference fasta file:" $FASTA
 echo "output path:" $OUTPUT_DIR
 echo "output file Name:" $OUT_NAME
 echo "vcf sample name:" $SAMPLE_NAME
+echo "keep only pass variant ?" $PASS
 echo "keep intermediate files ?:" $KEEP
 echo "Number of threads:" $CPU
 echo " "
+
+# Warnings:
+
+if [[ -n "$snv" && -n "$indel" && -n "$snvindel" ]];then
+    echo "[WARNING] too many arguments! Specify SNV and INDEL or SNVINDEL."
+    exit
+elif [[ (! -n "$snv" || ! -n "$indel") && ! -n "$snvindel" ]];then
+    echo "[WARNING] argument SNV or INDEL missing."
+    exit
+elif [[ (-n "$snv" || -n "$indel") &&  -n "$snvindel" ]];then
+    echo "[WARNING] too many arguments! Specify SNV and INDEL or SNVINDEL."
+    exit
+fi
 
 # Create output dir:
 
@@ -67,7 +84,7 @@ OUTPUT_DIR=$OUTPUT_DIR/$OUT_NAME
 if [[ ! -z "$snv" && ! -z "$indel" ]]; then
     echo "snv and indel not empty"
     if [[ $snv == *.vcf ]]; then
-        bgzip -@ $CPU-c $snv > $OUTPUT_DIR/$snv".gz"
+        bgzip -@ $CPU -c $snv > $OUTPUT_DIR/$snv".gz"
         snv=$OUTPUT_DIR/$snv".gz"
     fi
     if [[ $indel == *.vcf ]]; then
@@ -122,13 +139,17 @@ echo -e "[Running Information]: replacing "" by "chr"\n"
 zcat $snvindel | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/snv_indel_temp.vcf
 zcat $truth | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/truth_temp.vcf
 
+snvindel=$OUTPUT_DIR/"snv_indel_temp.vcf"
+truth=$OUTPUT_DIR/"truth_temp.vcf"
+
 ## Filtering PASS variants:
+if [[ ! -z "$PASS" ]]; then
+    echo -e "[Running Information]: Filtering PASS variant\n"
 
-echo -e "[Running Information]: Filtering PASS variant\n"
+    grep "PASS\|#" $snvindel > $OUTPUT_DIR/"snv_indel.pass.vcf"
 
-grep "PASS\|#" $OUTPUT_DIR/snv_indel_temp.vcf > $OUTPUT_DIR/"snv_indel.pass.vcf"
-
-snvindel=$OUTPUT_DIR/"snv_indel.pass.vcf"
+    snvindel=$OUTPUT_DIR/"snv_indel.pass.vcf"
+fi
 
 # Sorting vcf files
 echo -e "[Running Information]: sorting vcf files\n"
