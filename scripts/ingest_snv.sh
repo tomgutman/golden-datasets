@@ -52,6 +52,19 @@ echo "keep intermediate files ?:" $KEEP
 echo "Number of threads:" $CPU
 echo " "
 
+# Warnings:
+
+if [[ -n "$snv" && -n "$indel" && -n "$snvindel" ]];then
+    echo "[WARNING] too many arguments! Specify SNV and INDEL or SNVINDEL."
+    exit
+elif [[ (! -n "$snv" || ! -n "$indel") && ! -n "$snvindel" ]];then
+    echo "[WARNING] argument SNV or INDEL missing."
+    exit
+elif [[ (-n "$snv" || -n "$indel") &&  -n "$snvindel" ]];then
+    echo "[WARNING] too many arguments! Specify SNV and INDEL or SNVINDEL."
+    exit
+fi
+
 # Create output dir:
 
 mkdir -p $OUTPUT_DIR/$OUT_NAME
@@ -122,11 +135,14 @@ echo -e "[Running Information]: replacing "" by "chr"\n"
 zcat $snvindel | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/snv_indel_temp.vcf
 zcat $truth | awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' | awk '{gsub(/contig=\<ID=/,"contig=<ID=chr"); print}' | awk '{gsub(/chrchr/,"chr"); print}' > $OUTPUT_DIR/truth_temp.vcf
 
+snvindel=$OUTPUT_DIR/"snv_indel_temp.vcf"
+truth=$OUTPUT_DIR/"truth_temp.vcf"
+
 ## Filtering PASS variants:
 
 echo -e "[Running Information]: Filtering PASS variant\n"
 
-grep "PASS\|#" $OUTPUT_DIR/snv_indel_temp.vcf > $OUTPUT_DIR/"snv_indel.pass.vcf"
+grep "PASS\|#" $snvindel > $OUTPUT_DIR/"snv_indel.pass.vcf"
 
 snvindel=$OUTPUT_DIR/"snv_indel.pass.vcf"
 
