@@ -94,14 +94,20 @@ To benchmark snv calls from different centers, multipe steps are required:
 
 
 ```
-bash ingest_snv.sh -h
-		   -t truth_file.vcf
-                   -s snv.vcf
-                   -i indel.vcf
-                   -f ref_fasta.fa
-                   -o Path where output directory will be created
-                   -n Name of output directory
-                   -k (to keep intermediates files)
+bash ingest_snv.sh  -h
 
+Usage:
+bash ingest_snv.sh -t, --truth truth_file.vcf
+                   -s, --snv snv.vcf
+                   -i, --indel indel.vcf
+                   -m, --snvindel indels_and_vcfs.vcf
+                   -v, --sv sv.vcf
+                   -u, --truth_sv truth_sv.vcf
+                   -f, --fasta ref_fasta.fa
+                   -d, --outdir /OUTPUT_DIR/PATH
+                   -o, --outname output file name
+                   -n, --sname vcf sample name
+                   -c, --cpu number of threads
+                   -k, --keep (to keep intermediates files)
 ```
 Note: Truth file and snv/indel file should have different names
