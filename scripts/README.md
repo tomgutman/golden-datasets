@@ -107,6 +107,7 @@ bash ingest_snv.sh -t, --truth truth_file.vcf
                    -d, --outdir /OUTPUT_DIR/PATH
                    -o, --outname output file name
                    -n, --sname vcf sample name
+                   -p, --pass keep only the pass variants
                    -c, --cpu number of threads
                    -k, --keep (to keep intermediates files)
 ```
