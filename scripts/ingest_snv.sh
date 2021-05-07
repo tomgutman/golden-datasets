@@ -84,12 +84,12 @@ OUTPUT_DIR=$OUTPUT_DIR/$OUT_NAME
 if [[ ! -z "$snv" && ! -z "$indel" ]]; then
     echo "snv and indel not empty"
     if [[ $snv == *.vcf ]]; then
-        bgzip -@ $CPU -c $snv > $OUTPUT_DIR/$snv".gz"
-        snv=$OUTPUT_DIR/$snv".gz"
+        bgzip -@ $CPU -c $snv > $snv".gz"
+        snv=$snv".gz"
     fi
     if [[ $indel == *.vcf ]]; then
-        bgzip -@ $CPU -c $indel > $OUTPUT_DIR/$indel".gz"
-        indel=$OUTPUT_DIR/$indel".gz"
+        bgzip -@ $CPU -c $indel > $indel".gz"
+        indel=$indel".gz"
     fi
 
     echo -e "[Running Information]: indexing vcf files\n"
