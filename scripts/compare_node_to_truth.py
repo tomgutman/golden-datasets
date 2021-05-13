@@ -380,7 +380,7 @@ def main():
         out = open(args.metrics, 'w')
         for bin in results:
             for tier in results[bin]:
-                out.write(bin + "\t" + "\t".join(str(x) for x in tier) + "\n")
+                out.write(bin + "," + ",".join(str(x) for x in tier) + "\n")
         out.close()
 
     for bin in results:

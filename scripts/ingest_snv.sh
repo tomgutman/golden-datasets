@@ -89,6 +89,7 @@ if [[ ! -z "$snv" && ! -z "$indel" ]]; then
     fi
     if [[ $indel == *.vcf ]]; then
         bgzip -@ $CPU -c $indel > $indel".gz"
+
         indel=$indel".gz"
     fi
 
