@@ -59,7 +59,7 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         TIER 1: Start pos within 200bp, Length ratio within 20%, End pos within 200bp,
         '''
         def conditions_tier1(s):
-            pos_thres = 0
+            pos_thres = 30
             ratio_thres = 0.8
             if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
@@ -71,7 +71,7 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
         '''
         def conditions_tier2(s):
-            pos_thres = 10
+            pos_thres = 1000
             ratio_thres = 0.8
             if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
@@ -84,9 +84,9 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         TIER 3: Start pos within 600bp, Length ratio within 30%
         '''
         def conditions_tier3(s):
-            pos_thres = 50
-            ratio_thres = 0.7
-            if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
+            pos_thres = 0
+            ratio_thres = 0.8
+            if (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
             else:
                 return False
@@ -102,6 +102,9 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
 def calculate_performance(comp_df, FN_df, FP_df):
     #TODO: check the logic of the output of this method
     results = [["TIER", "TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score"]]
+    print(comp_df)
+    print(FN_df)
+    print(FP_df)
     for tier in ['tier1', 'tier2', 'tier3']:
         if comp_df.empty:
             TP = 0
@@ -306,8 +309,8 @@ def main():
     #
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        print(sv_comp_df)
+    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    #    print(sv_comp_df)
     #print(sv_comp_df.shape)
     #print(sv_fp_df)
     #print(sv_fp_df.shape)
