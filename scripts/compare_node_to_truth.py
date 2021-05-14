@@ -59,7 +59,7 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         TIER 1: Start pos within 200bp, Length ratio within 20%, End pos within 200bp,
         '''
         def conditions_tier1(s):
-            pos_thres = 30
+            pos_thres = 5
             ratio_thres = 0.8
             if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
@@ -71,7 +71,7 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
         '''
         def conditions_tier2(s):
-            pos_thres = 1000
+            pos_thres = 15
             ratio_thres = 0.8
             if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
@@ -85,7 +85,7 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         '''
         def conditions_tier3(s):
             pos_thres = 0
-            ratio_thres = 0.8
+            ratio_thres = 0.7
             if (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
             else:
