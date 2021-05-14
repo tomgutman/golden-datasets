@@ -205,12 +205,16 @@ def calculate_characteristics(truth, test, window):
     # Compare the types of the SVs
     #print(test['type'] + "\t" + truth['type'])
     type_truth = truth['type']
+    type_test = test['type']
     if test['type'] == truth['type']:
         match_type = "YES"
+    # If the test file has a BND, we want to match to every type of truth
     elif test['type'] == "BND":
         match_type = "BND_test"
+    # If the truth file has a BND, we want to match to every type of test
     elif truth['type'] == "BND":
         match_type = "BND_truth"
+    # We want to match a DUP to a INS as well as the other way around (similar definitions)
     elif truth['type'] == "DUP" and test['type'] == "INS":
         match_type = "similar"
     elif truth['type'] == "INS" and test['type'] == "DUP":
@@ -247,7 +251,7 @@ def calculate_characteristics(truth, test, window):
     # Debugging
     #print([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
 
-    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, type_truth, match_type, bin0_200, bin200_1000, bin1000, dup_truth])
+    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, type_truth, type_test, match_type, bin0_200, bin200_1000, bin1000, dup_truth])
 
 def main():
     parser = argparse.ArgumentParser()
@@ -263,7 +267,7 @@ def main():
     truth['times_checked'] = 0
     sv_comp_list = []
     sv_fp_list = []
-    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'type_truth', 'match_type', 'bin0_200', 'bin200_1000', 'bin1000', 'dup_truth', 'index_test', 'index_truth']   #'index_test', 'index_truth'
+    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'type_truth', 'type_test', 'match_type', 'bin0_200', 'bin200_1000', 'bin1000', 'dup_truth', 'index_test', 'index_truth']   #'index_test', 'index_truth'
     window = 1000
     # For each row in the test file:
     for index, row in node.iterrows():
