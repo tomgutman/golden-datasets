@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
+from collections import Counter
 
 
 '''
@@ -101,16 +102,22 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
 
 def calculate_performance(comp_df, FN_df, FP_df):
     #TODO: check the logic of the output of this method
-    results = [["TIER", "TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score"]]
-    print(comp_df)
-    print(FN_df)
-    print(FP_df)
+    results = [["TIER", "TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score", "TP_DEL", "TP_INS", "TP_DUP", "TP_INV", "TP_BND"]]
+    # DEL, INS, DUP, INV, BND
+    types = []
     for tier in ['tier1', 'tier2', 'tier3']:
         if comp_df.empty:
             TP = 0
             FP_new = 0
+            types = [0,0,0,0,0]
         else:
             TP = comp_df.loc[comp_df[tier] == True].shape[0]
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                counted_items = Counter(comp_df.loc[comp_df[tier] == True]['type_truth'].tolist())
+                types = [counted_items['DEL'],counted_items['INS'],counted_items['DUP'],counted_items['INV'],counted_items['BND']]
+                for key in counted_items:
+                    if key not in ['DEL', 'INS', 'DUP', 'INV', 'BND']:
+                        sys.exit("[ERROR] Type not recognized!")
             FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
         if FP_df.empty:
             FP_orig = 0
@@ -145,7 +152,8 @@ def calculate_performance(comp_df, FN_df, FP_df):
         #print("\tF1-score:\t" + str(round(F1,2)))
 
         #TODO: include match_type column
-        results.append([tier, TP, FP_orig + FP_new, FP_orig, FP_new, FN, round(recall,2), round(precision,2), round(F1,2)])
+
+        results.append([tier, TP, FP_orig + FP_new, FP_orig, FP_new, FN, round(recall,2), round(precision,2), round(F1,2)] + types)
     return(results)
 
 
@@ -196,6 +204,7 @@ def calculate_characteristics(truth, test, window):
 
     # Compare the types of the SVs
     #print(test['type'] + "\t" + truth['type'])
+    type_truth = truth['type']
     if test['type'] == truth['type']:
         match_type = "YES"
     elif test['type'] == "BND":
@@ -238,7 +247,7 @@ def calculate_characteristics(truth, test, window):
     # Debugging
     #print([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
 
-    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, bin0_200, bin200_1000, bin1000, dup_truth])
+    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, type_truth, match_type, bin0_200, bin200_1000, bin1000, dup_truth])
 
 def main():
     parser = argparse.ArgumentParser()
@@ -254,7 +263,7 @@ def main():
     truth['times_checked'] = 0
     sv_comp_list = []
     sv_fp_list = []
-    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'bin0_200', 'bin200_1000', 'bin1000', 'dup_truth', 'index_test', 'index_truth']   #'index_test', 'index_truth'
+    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'type_truth', 'match_type', 'bin0_200', 'bin200_1000', 'bin1000', 'dup_truth', 'index_test', 'index_truth']   #'index_test', 'index_truth'
     window = 1000
     # For each row in the test file:
     for index, row in node.iterrows():
