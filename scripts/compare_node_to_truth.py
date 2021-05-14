@@ -389,7 +389,7 @@ def main():
     sv_comp_df_bin0 = sv_comp_df.loc[pd.isna(sv_comp_df['length_truth'])]
     sv_fn_df_bin0 = sv_fn_df.loc[pd.isna(sv_fn_df['length'])]
     sv_fp_df_bin0 = sv_fp_df.loc[pd.isna(sv_fp_df['length'])]
-    results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+    results["Bin NaN bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
     if args.metrics:
         #Save to file
