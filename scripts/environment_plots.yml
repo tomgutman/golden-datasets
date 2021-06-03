@@ -1,0 +1,7 @@
+name: benchmarking_plots 
+channels:
+  - defaults
+dependencies:
+  - r-ggplot2
+  - r-dplyr
+
