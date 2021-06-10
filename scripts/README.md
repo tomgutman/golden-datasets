@@ -27,7 +27,7 @@ Scripts in this folder have two main purpose:
 
 ### SV Benchmark
 
-First of all clone the repo:
+First of all, clone the devel branch of the repo:
 
 ```shell
 git clone -b devel https://github.com/EUCANCan/golden-datasets.git
@@ -36,8 +36,8 @@ git clone -b devel https://github.com/EUCANCan/golden-datasets.git
 **Requirements**
 
 This tool is implemented in `python3` and require several libraries such as `pandas`,`pyVCF` and `argsParse`.
-A `conda` environment is provided.
-To use it, simply use:
+A `conda` environment is provided. Therefore you need to have `conda` installed in your machine.
+To use it, simply go to the `scripts` folder of the repo and execute:
 
 ```shell
 conda env create --name ingestion python=3.6 -f environment.yml
