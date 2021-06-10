@@ -2,6 +2,16 @@
 
 Download, extract and format golden datasets to benchmark pipelines
 
+
+***NOTICE:***
+In order to test the benchmarking go to [golden-datasets/scripts](https://github.com/EUCANCan/golden-datasets/tree/devel/scripts) folder within the `devel` branch and follow the instructions there.
+
+Instructions down below are to download datasets and are not required to test the benchmarking scripts.
+
+---
+
+
+
 ## Requirements
 
 * GNU make
