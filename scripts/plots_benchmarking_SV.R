@@ -1,41 +1,115 @@
-library("tidyverse")
+#!/usr/bin/env Rscript
 
-setwd("/run/user/1001/gvfs/sftp:host=u900-bdd-1-124t-6989.curie.fr,user=tgutman/bioinfo/users/tgutman/Documents/Tom/EUCANCan/Benchmark/colo829")
+# Load libraries:
+library("tidyverse")
+library("optparse")
+
+# Setup arguments
+option_list = list(
+  make_option(c("-b", "--bsc"), type="character", default=NULL, 
+              help="BSC SV file", metavar="character"),
+  make_option(c("-c", "--charite"), type="character", default=NULL, 
+              help="charite SV file", metavar="character"),
+  make_option(c("-d", "--curie"), type="character", default=NULL, 
+              help="curie SV file", metavar="character"),
+  make_option(c("-H", "--hartwig"), type="character", default=NULL, 
+              help="hartwig SV file", metavar="character"),
+  make_option(c("-O", "--oicr"), type="character", default=NULL, 
+              help="oicr SV file", metavar="character"),
+  make_option(c("-t", "--truth"), type="character", default=NULL, 
+              help="truth file", metavar="character"),
+  make_option(c("-o", "--outputDir"), type="character", default=NULL, 
+              help="oicr SV file", metavar="character")
+); 
+
+opt_parser = OptionParser(option_list=option_list);
+opt = parse_args(opt_parser);
+
+if (is.null(opt$bsc) && is.null(opt$charite) && is.null(opt$curie) && is.null(opt$hartwig) && is.null(opt$oicr)){
+  print_help(opt_parser)
+  stop("At least one argument must be supplied (input file).n", call.=FALSE)
+}
+
+# Check if arg is present and add to svTable
+svTable=data.frame()
+
+if (!is.null(opt$bsc)){
+  bscTable = read.table(opt$bsc, header=TRUE, sep =",",stringsAsFactors = FALSE)
+  bscTable$Center="BSC"
+  svTable=rbind(svTable,bscTable[-c(4,8,12,16,20),])
+}
+
+if (!is.null(opt$charite)){
+  chariteTable = read.table(opt$charite, header=TRUE, sep =",",stringsAsFactors = FALSE)
+  chariteTable$Center="Charite"
+  svTable=rbind(svTable,chariteTable[-c(4,8,12,16,20),])
+}
+
+if (!is.null(opt$curie)){
+  curieTable = read.table(opt$curie, header=TRUE, sep =",",stringsAsFactors = FALSE)
+  curieTable$Center="Curie"
+  svTable=rbind(svTable,curieTable[-c(4,8,12,16,20),])
+}
+
+if (!is.null(opt$hartwig)){
+  hartwigTable = read.table(opt$hartwig, header=TRUE, sep =",",stringsAsFactors = FALSE)
+  hartwigTable$Center="Hartwig"
+  svTable=rbind(svTable,hartwigTable[-c(4,8,12,16,20),])
+}
+
+if (!is.null(opt$oicr)){
+  oicrTable = read.table(opt$oicr, header=TRUE, sep =",",stringsAsFactors = FALSE)
+  oicrTable$Center="OICR"
+  svTable=rbind(svTable,oicrTable[-c(4,8,12,16,20),])
+}
 
 # Load truth table
-truthTsv=read.table("TRUTH/COLO829_truth.tsv",header=TRUE,stringsAsFactors = FALSE,sep="\t")
+truthTsv=read.table(opt$truth,header=TRUE,stringsAsFactors = FALSE,sep="\t")
 
-# Load SV results
-svTable=read.table("results_benchmark/colo_results_SV.csv",header=TRUE,stringsAsFactors = FALSE, sep=",")
-
+# Transform svTable: anonymize, change bin name
 svTable=svTable %>% 
   mutate(Center = case_when(Center == "BSC" ~ "Node 1",
                             Center == "Curie" ~ "Node 2",
                             Center == "Charite" ~ "Node 3",
                             Center == "Hartwig" ~ "Node 4",
                             Center == "OICR" ~ "Node 5")) %>% 
-  mutate(Center=factor(Center,levels=c("Node 1", "Node 2", "Node 3", "Node 4","Node 5")))
-  
+  mutate(Center=factor(Center,levels=c("Node 1", "Node 2", "Node 3", "Node 4","Node 5"))) %>% 
+  mutate(All.results = case_when(All.results == "All results" ~ "All",
+                                 All.results == "Bin 0-50 bp" ~ "0-50",
+                                 All.results == "Bin 50-200 bp" ~ "50-200",
+                                 All.results == "Bin 200-1000 bp" ~ "200-1000",
+                                 All.results == "Bin 1000-100000000000000000000000000000 bp" ~ "> 1000",
+                                 All.results == "Bin NaN bp" ~ "NaN")) %>% 
+  dplyr::rename(Bin = All.results)
+
+write.table(svTable,file = paste0(opt$outputDir ,"svTable.csv"),row.names = FALSE)
+
+print("svTable:")
+print(svTable,row.names = FALSE)
+
+# Transform svTable and extract only useful info
 tidySV=svTable %>% 
   filter(Bin != "All" & TIER == "tier3") %>% 
   select(Bin,Center,starts_with("TP") & !c("TP")) %>% 
-  mutate(Bin = case_when(Bin == "Bin NaN bp" ~ "NaN",
+  mutate(Bin = case_when(Bin == "NaN" ~ "NaN",
                          Bin == "0-50" ~ "0-50",
                          Bin == "50-200" ~ "50-200",
                          Bin == "200-1000" ~ "200-1000",
-                         Bin == "> 1000" ~ "> 1000"))
-
+                         Bin == "> 1000" ~ "> 1000")) %>% 
+  mutate(TP_DEL=as.numeric(TP_DEL),TP_INS=as.numeric(TP_INS),TP_DUP=as.numeric(TP_DUP),TP_INV=as.numeric(TP_INV),TP_BND=as.numeric(TP_BND))
 
 colnames(tidySV)=c("Bin","Center","DEL","INS","DUP","INV","BND")
 
+# Transform Truth Table
 truthTsv= truthTsv %>% 
   select(new_id,type,size) %>% 
   mutate(bin = cut(truthTsv$size,c(0,1,50,200,1000,1000000000),include.lowest = TRUE))
 
+# Count the number of TP of each category and put everything together
 SV_count=t(table(truthTsv$type,truthTsv$bin))
 SV_count = as.data.frame.matrix(SV_count) %>% 
   rownames_to_column() %>% 
-  rename(Bin = rowname) %>%
+  dplyr::rename(Bin = rowname) %>%
   mutate(Center="Truth") %>% 
   select(Bin,Center,DEL,INS,DUP,INV,BND) %>% 
   mutate(Bin = case_when(Bin == "[0,1]" ~ "NaN",
@@ -46,6 +120,9 @@ SV_count = as.data.frame.matrix(SV_count) %>%
   bind_rows(tidySV)
 
 SV_count$Bin=fct_relevel(as.factor(SV_count$Bin), "0-50", "50-200","200-1000","> 1000","NaN")
+
+print("General matrix")
+print(SV_count)
 
 # Plot general metrics:
 ## Plot TP FP FN raw 
@@ -67,7 +144,7 @@ ggplot(tidySvTP,aes(x= Center,y=count,fill=metric)) +
         plot.title = element_text(size=22),
         legend.key.size = unit(1.5,"line"))
 
-ggsave("results_benchmark/barplot_SV_general_tier3_all.png",width=30,height=20,units='cm')
+ggsave(paste0(opt$outputDir ,"barplot_SV_general_tier3_all.png"),width=30,height=20,units='cm')
 
 ## Plot TP FP FN by SV type
 
@@ -88,13 +165,14 @@ ggplot(tidySvTP_all,aes(x= Center,y=count,fill=metric)) +
         plot.title = element_text(size=22),
         legend.key.size = unit(1.5,"line"))
 
-ggsave("results_benchmark/barplot_SV_TP_tier3_all.png",width=30,height=20,units='cm')
+ggsave(paste0(opt$outputDir ,"barplot_SV_TP_tier3_all.png"),width=30,height=20,units='cm')
 
 ## Plot Precision Recall & F1 score
 tidySvF1=svTable %>% 
   filter(Bin == "All" & TIER == "tier3") %>% 
   select(-c(TIER,FP,FP_original,FP_tier,FN,TP_DEL,TP_INS,TP_DUP,TP_INV,TP_BND )) %>% 
-  pivot_longer(cols = c(Recall,Precision,F1.score), names_to = "metric", values_to = "count")
+  pivot_longer(cols = c(Recall,Precision,F1.score), names_to = "metric", values_to = "count") %>% mutate(count=as.numeric(count),TP=as.numeric(TP))
+
 
 tidySvF1$metric=fct_relevel(as.factor(tidySvF1$metric), "Recall","Precision","F1.score")
 
@@ -110,7 +188,7 @@ ggplot(tidySvF1,aes(x= Center,y=count*100,fill=metric)) +
         plot.title = element_text(size=22),
         legend.key.size = unit(1.5,"line"))
 
-ggsave("results_benchmark/barplot_SV_F1_tier3_all.png",width=30,height=20,units='cm')
+ggsave(paste0(opt$outputDir ,"barplot_SV_F1_tier3_all.png"),width=30,height=20,units='cm')
 
 ## Compare to truth:
 
@@ -129,7 +207,7 @@ ggplot(tidySV_count,aes(x=Bin,y=count,fill=Center)) +
         plot.title = element_text(size=22),
         legend.key.size = unit(1.5,"line"))
 
-ggsave("results_benchmark/barplot_SV_truth_types.png",width=30,height=20,units='cm')
+ggsave(paste0(opt$outputDir ,"barplot_SV_truth_types.png"),width=30,height=20,units='cm')
 
 ggplot(mapping = aes(x=Bin,y=count,fill=Center)) +
   geom_bar(data=tidySV_count[which(tidySV_count$Center != "Truth"),],stat="identity",position="dodge") +
@@ -146,4 +224,4 @@ ggplot(mapping = aes(x=Bin,y=count,fill=Center)) +
         strip.text.x = element_text(size = 14),
         legend.key.size = unit(1.5,"line"))
 
-ggsave("results_benchmark/barplot_SV_truth_types.png",width=30,height=20,units='cm')
+ggsave(paste0(opt$outputDir ,"barplot_SV_truth_types.png"),width=30,height=20,units='cm')
