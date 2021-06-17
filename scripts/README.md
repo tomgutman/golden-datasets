@@ -27,7 +27,13 @@ Scripts in this folder have two main purpose:
 
 ### SV Benchmark
 
-**requirements**
+First of all clone the repo:
+
+```shell
+git clone -b devel https://github.com/EUCANCan/golden-datasets.git
+```
+
+**Requirements**
 
 This tool is implemented in `python3` and require several libraries such as `pandas`,`pyVCF` and `argsParse`.
 A `conda` environment is provided.
