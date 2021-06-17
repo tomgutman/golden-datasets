@@ -83,7 +83,7 @@ OUTPUT_DIR=$OUTPUT_DIR/$OUT_NAME
 # Load conda env:
 #conda env create -n eucancan -f golden-datasets/scripts/environment_snv.yml
 
-#source activate eucancan
+source activate eucancan
 
 # If SNV and INDEL in two files
 
@@ -208,6 +208,7 @@ python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"snv_indel.pass.so
 python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"truth_temp.sort.prep.norm" $truth
 
 # Running SV ingestion script:
+conda activate eucancan_sv
 echo -e "[Running Information]: Running ingest.py script \n"
 sv_dataframe=$OUTPUT_DIR/"sv_dataframe.csv"
 truth_sv_dataframe=$OUTPUT_DIR/"truth_sv_dataframe.csv"
@@ -217,6 +218,7 @@ python $DIR/ingest.py $sv -samplename $SAMPLE_NAME -outputfile $sv_dataframe
 python $DIR/ingest.py $truth_sv -samplename $SNV_SAMPLE_NAME -outputfile $truth_sv_dataframe
 
 
+conda deactivate
 snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.filtered.vcf"
 truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.filtered.vcf"
 
@@ -228,11 +230,13 @@ som.py $truth $snvindel -o $OUTPUT_DIR/$OUT_NAME --verbose -N
 echo -e "[Running Information]: script ended successfully\n"
 
 # Running SV benchmark:
+conda activate eucancan_sv
 echo -e "[Running Information]: Running compare_node_to_truth.py script\n"
 metrics=$OUTPUT_DIR/"SV_benchmark_results.csv"
 
 python $DIR/compare_node_to_truth.py $sv_dataframe $truth_sv_dataframe -metrics $metrics
 
+conda deactivate
 
 # Cleaning
 echo -e "[Running Information]: Cleaning files\n"
