@@ -68,7 +68,6 @@ Computes metrics for SV calls. Optional: `-metrics` flag to print result to a fi
 python compare_node_to_truth.py DATAFRAME_TEST_FILE DATAFRAME_TRUTH_FILE -metrics OUTPUT_METRICS_FILE
 ```
 
-**implementation**
 
 ### SNV Benchmark
 
