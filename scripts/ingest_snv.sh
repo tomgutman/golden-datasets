@@ -16,6 +16,8 @@ while [ $# -gt 0 ] ; do
       -d | --outdir) OUTPUT_DIR="$2";;
       -o | --outname) OUT_NAME="$2";;
       -n | --sname) SAMPLE_NAME="$2";;
+      -a | --truth_sv_sname) SV_SAMPLE_NAME="$2";;
+      -b | --truth_snv_sname) SNV_SAMPLE_NAME="$2";;
       -p | --pass) PASS=true;;
       -c | --cpu) CPU="$2";;
       -k | --keep) KEEP=true;;
@@ -30,6 +32,8 @@ while [ $# -gt 0 ] ; do
           echo "                   -d, --outdir /OUTPUT_DIR/PATH"
           echo "                   -o, --outname output file name"
           echo "                   -n, --sname vcf sample name"
+          echo "                   -a, --truth_sv_sname sample name for truth sv if different"
+          echo "                   -b, --truth_snv_sname sample name for truth snv if different"
           echo "                   -p, --pass keep only the pass variants"
           echo "                   -c, --cpu number of threads"
           echo "                   -k, --keep (to keep intermediates files)"
@@ -51,6 +55,8 @@ echo "Reference fasta file:" $FASTA
 echo "output path:" $OUTPUT_DIR
 echo "output file Name:" $OUT_NAME
 echo "vcf sample name:" $SAMPLE_NAME
+echo "truth snv sample name:" $SNV_SAMPLE_NAME
+echo "truth sv sample name:" $SV_SAMPLE_NAME
 echo "keep only pass variant ?" $PASS
 echo "keep intermediate files ?:" $KEEP
 echo "Number of threads:" $CPU
@@ -82,7 +88,7 @@ OUTPUT_DIR=$OUTPUT_DIR/$OUT_NAME
 # If SNV and INDEL in two files
 
 if [[ ! -z "$snv" && ! -z "$indel" ]]; then
-    echo "snv and indel not empty"
+    echo "[INFO] snv and indel not empty"
     if [[ $snv == *.vcf ]]; then
         bgzip -@ $CPU -c $snv > $snv".gz"
         snv=$snv".gz"
@@ -123,9 +129,10 @@ fi
 
 echo -e "[Running Information]: checking if vcf is multisample\n"
 
+# todo: check if the truth file is multisample or not!
 if [[ `bcftools query -l $snvindel |wc -l` -gt 1  && -z "$SAMPLE_NAME" ]]; then
-    echo $snvindel "is a multisample"
-    echo "sample name must be specified in -n parameter"
+    echo "[ERROR]" $snvindel "is a multisample"
+    echo "[ERROR] sample name must be specified in -n parameter"
     exit
 elif [[ `bcftools query -l $snvindel |wc -l` -gt 1  && ! -z "$SAMPLE_NAME" ]]; then
     echo $SAMPLE_NAME
@@ -191,13 +198,24 @@ pre.py $truth $OUTPUT_DIR/truth_temp.sort.prep.norm.vcf.gz -L --decompose --soma
 snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.vcf.gz"
 truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.vcf.gz"
 
-# Running ingestion script:
+# Running SNV ingestion script:
 echo -e "[Running Information]: Running ingestion_snv.py script \n"
+# Define directory of git repo with scripts
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"snv_indel.pass.sort.prep.norm" $snvindel
 
 python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"truth_temp.sort.prep.norm" $truth
+
+# Running SV ingestion script:
+echo -e "[Running Information]: Running ingest.py script \n"
+sv_dataframe=$OUTPUT_DIR/"sv_dataframe.csv"
+truth_sv_dataframe=$OUTPUT_DIR/"truth_sv_dataframe.csv"
+
+python $DIR/ingest.py $sv -samplename $SAMPLE_NAME -outputfile $sv_dataframe
+
+python $DIR/ingest.py $truth_sv -samplename $SNV_SAMPLE_NAME -outputfile $truth_sv_dataframe
+
 
 snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.filtered.vcf"
 truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.filtered.vcf"
@@ -209,9 +227,12 @@ som.py $truth $snvindel -o $OUTPUT_DIR/$OUT_NAME --verbose -N
 
 echo -e "[Running Information]: script ended successfully\n"
 
-# Running SV ingestion script:
+# Running SV benchmark:
+echo -e "[Running Information]: Running compare_node_to_truth.py script\n"
+metrics=$OUTPUT_DIR/"SV_benchmark_results.csv"
 
-#echo -e "[Running Information]: Running ingestion SV script\n"
+python $DIR/compare_node_to_truth.py $sv_dataframe $truth_sv_dataframe -metrics $metrics
+
 
 # Cleaning
 echo -e "[Running Information]: Cleaning files\n"
