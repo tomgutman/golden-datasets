@@ -224,7 +224,11 @@ truth_sv_dataframe=$OUTPUT_DIR/"truth_sv_dataframe.csv"
 
 python $DIR/ingest.py $sv -samplename $SAMPLE_NAME -outputfile $sv_dataframe
 
-python $DIR/ingest.py $truth_sv -samplename $SNV_SAMPLE_NAME -outputfile $truth_sv_dataframe
+if [[ -z "$SV_SAMPLE_NAME" ]]; then
+  python $DIR/ingest.py $truth_sv -outputfile $truth_sv_dataframe
+else
+  python $DIR/ingest.py $truth_sv -samplename $SV_SAMPLE_NAME -outputfile $truth_sv_dataframe
+fi
 
 conda deactivate
 snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.filtered.vcf"
