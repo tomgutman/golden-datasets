@@ -207,6 +207,14 @@ python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"snv_indel.pass.so
 
 python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"truth_temp.sort.prep.norm" $truth
 
+# Check if we can correctly ingest the SV Truth file
+# No separate sample name for SV file given: this means that it is single sample OR we should reuse samplename OR user should have provided -a argument.
+if [[ `bcftools query -l $sv | wc -l` -gt 1  && -z "$SV_SAMPLE_NAME" ]]; then
+  echo "[INFO]" $snvindel "is a multisample"
+  echo "[INFO] We will try to use the samplename given by the -n toggle. If this does not work, please provide the correct samplename for the SV file by using the -a toggle."
+  SV_SAMPLE_NAME=$SAMPLE_NAME
+fi
+
 # Running SV ingestion script:
 # todo: use PASS toggle in this script as well
 conda activate eucancan_sv
@@ -216,15 +224,7 @@ truth_sv_dataframe=$OUTPUT_DIR/"truth_sv_dataframe.csv"
 
 python $DIR/ingest.py $sv -samplename $SAMPLE_NAME -outputfile $sv_dataframe
 
-# No separate sample name for SV file given: this means that it is single sample OR we should reuse samplename OR user should have provided -a argument.
-if [[ `bcftools query -l $sv | wc -l` -gt 1  && -z "$SV_SAMPLE_NAME" ]]; then
-  echo "[INFO]" $snvindel "is a multisample"
-  echo "[INFO] We will try to use the samplename given by the -n toggle. If this does not work, please provide the correct samplename for the SV file by using the -a toggle."
-  SV_SAMPLE_NAME=$SAMPLE_NAME
-fi
-
 python $DIR/ingest.py $truth_sv -samplename $SNV_SAMPLE_NAME -outputfile $truth_sv_dataframe
-
 
 conda deactivate
 snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.filtered.vcf"
