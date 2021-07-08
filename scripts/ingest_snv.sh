@@ -83,8 +83,8 @@ OUTPUT_DIR=$OUTPUT_DIR/$OUT_NAME
 # Load conda env:
 #conda env create -n eucancan -f golden-datasets/scripts/environment_snv.yml
 
-#conda activate eucancan
-source activate eucancan
+conda activate eucancan
+#source activate eucancan
 # If SNV and INDEL in two files
 
 if [[ ! -z "$snv" && ! -z "$indel" ]]; then
@@ -217,9 +217,9 @@ fi
 
 # Running SV ingestion script:
 # todo: use PASS toggle in this script as well
-#conda activate eucancan_sv
+conda activate eucancan_sv
 #conda activate eucancan
-source activate ingestion
+#source activate ingestion
 
 echo -e "[Running Information]: Running SV ingest.py script \n"
 sv_dataframe=$OUTPUT_DIR/"sv_dataframe.csv"
@@ -238,7 +238,8 @@ snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.filtered.vcf"
 truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.filtered.vcf"
 
 # Running som.py:
-source activate eucancan
+conda activate eucancan_sv
+#source activate eucancan
 echo -e "[Running Information]: Running som.py evaluation script\n"
 
 som.py $truth $snvindel -o $OUTPUT_DIR/$OUT_NAME --verbose -N
@@ -260,14 +261,14 @@ conda deactivate
 # Ploting with R
 ## SNVs
 
-#conda activate benchmarking_plots
-source activate benchmarking_plots
+conda activate benchmarking_plots
+#source activate benchmarking_plots
 
 echo -e "[Running Information]: Running plots_benchmarking_snv.R script\n"
 Rscript $DIR/plots_benchmarking_snv.R -b $OUTPUT_DIR/$OUT_NAME".stats.csv" -o $OUTPUT_DIR/$OUT_NAME
 
 echo -e "[Running Information]: Running plots_benchmarking_SV.R script\n"
-Rscript $DIR/plots_benchmarking_SV.R -b $OUTPUT_DIR/$OUT_NAME/"SV_benchmark_results.csv" -t $truth_sv_dataframe -o $OUTPUT_DIR/$OUT_NAME
+Rscript $DIR/plots_benchmarking_SV.R -b $OUTPUT_DIR/"SV_benchmark_results.csv" -t $truth_sv -o $OUTPUT_DIR/$OUT_NAME
 
 conda deactivate
 
