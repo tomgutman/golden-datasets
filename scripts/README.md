@@ -27,11 +27,17 @@ Scripts in this folder have two main purpose:
 
 ### SV Benchmark
 
-**requirements**
+First of all, clone the devel branch of the repo:
+
+```shell
+git clone -b devel https://github.com/EUCANCan/golden-datasets.git
+```
+
+**Requirements**
 
 This tool is implemented in `python3` and require several libraries such as `pandas`,`pyVCF` and `argsParse`.
-A `conda` environment is provided.
-To use it, simply use:
+A `conda` environment is provided. Therefore you need to have `conda` installed in your machine.
+To use it, simply go to the `scripts` folder of the repo and execute:
 
 ```shell
 conda env create --name ingestion python=3.6 -f environment.yml
@@ -44,11 +50,13 @@ Add any new requirement for your code to [environment.yml](https://github.com/EU
 
 **1) Ingestion**
 
+
 Creates dataframes from VCF/TSV files. This step is required both for test files and truth files.
 Flag `-samplename` is required for VCF files and must contain the Tumor sample name
 
 ```shell
-python ingest.py VCF_FILE -outputfile DATAFRAME_FILE
+python ingest.py TEST_FILE -outputfile DATAFRAME_TEST_FILE
+python ingest.py TRUTH_FILE -outputfile DATAFRAME_TRUTH_FILE
 ```
 
 
@@ -57,10 +65,9 @@ python ingest.py VCF_FILE -outputfile DATAFRAME_FILE
 Computes metrics for SV calls. Optional: `-metrics` flag to print result to a file
 
 ```shell
-python compare_node_to_truth.py DATAFRAME_TEST DATAFRAME_TRUTH -metrics OUTPUT_METRICS_FILE
+python compare_node_to_truth.py DATAFRAME_TEST_FILE DATAFRAME_TRUTH_FILE -metrics OUTPUT_METRICS_FILE
 ```
 
-**implementation**
 
 ### SNV Benchmark
 

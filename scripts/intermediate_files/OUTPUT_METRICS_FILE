@@ -1,0 +1,24 @@
+All results,TIER,TP,FP,FP_original,FP_tier,FN,Recall,Precision,F1-score,TP_DEL,TP_INS,TP_DUP,TP_INV,TP_BND
+All results,tier1,55,9,6,3,10,0.85,0.86,0.85,29,3,7,6,10
+All results,tier2,55,9,6,3,10,0.85,0.86,0.85,29,3,7,6,10
+All results,tier3,57,7,6,1,10,0.85,0.89,0.87,29,3,7,6,12
+Bin 0-50 bp,TIER,TP,FP,FP_original,FP_tier,FN,Recall,Precision,F1-score,TP_DEL,TP_INS,TP_DUP,TP_INV,TP_BND
+Bin 0-50 bp,tier1,4,1,0,1,1,0.8,0.8,0.8,4,0,0,0,0
+Bin 0-50 bp,tier2,4,1,0,1,1,0.8,0.8,0.8,4,0,0,0,0
+Bin 0-50 bp,tier3,4,1,0,1,1,0.8,0.8,0.8,4,0,0,0,0
+Bin 50-200 bp,TIER,TP,FP,FP_original,FP_tier,FN,Recall,Precision,F1-score,TP_DEL,TP_INS,TP_DUP,TP_INV,TP_BND
+Bin 50-200 bp,tier1,5,1,1,0,0,1.0,0.83,0.91,1,2,2,0,0
+Bin 50-200 bp,tier2,5,1,1,0,0,1.0,0.83,0.91,1,2,2,0,0
+Bin 50-200 bp,tier3,5,1,1,0,0,1.0,0.83,0.91,1,2,2,0,0
+Bin 200-1000 bp,TIER,TP,FP,FP_original,FP_tier,FN,Recall,Precision,F1-score,TP_DEL,TP_INS,TP_DUP,TP_INV,TP_BND
+Bin 200-1000 bp,tier1,3,0,0,0,1,0.75,1.0,0.86,1,1,0,1,0
+Bin 200-1000 bp,tier2,3,0,0,0,1,0.75,1.0,0.86,1,1,0,1,0
+Bin 200-1000 bp,tier3,3,0,0,0,1,0.75,1.0,0.86,1,1,0,1,0
+Bin 1000-100000000000000000000000000000 bp,TIER,TP,FP,FP_original,FP_tier,FN,Recall,Precision,F1-score,TP_DEL,TP_INS,TP_DUP,TP_INV,TP_BND
+Bin 1000-100000000000000000000000000000 bp,tier1,33,5,5,0,7,0.82,0.87,0.85,23,0,5,5,0
+Bin 1000-100000000000000000000000000000 bp,tier2,33,5,5,0,7,0.82,0.87,0.85,23,0,5,5,0
+Bin 1000-100000000000000000000000000000 bp,tier3,33,5,5,0,7,0.82,0.87,0.85,23,0,5,5,0
+Bin NaN bp,TIER,TP,FP,FP_original,FP_tier,FN,Recall,Precision,F1-score,TP_DEL,TP_INS,TP_DUP,TP_INV,TP_BND
+Bin NaN bp,tier1,10,2,0,2,1,0.91,0.83,0.87,0,0,0,0,10
+Bin NaN bp,tier2,10,2,0,2,1,0.91,0.83,0.87,0,0,0,0,10
+Bin NaN bp,tier3,12,0,0,0,1,0.92,1.0,0.96,0,0,0,0,12

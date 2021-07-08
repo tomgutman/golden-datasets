@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
+from collections import Counter
 
 
 '''
@@ -59,7 +60,7 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         TIER 1: Start pos within 200bp, Length ratio within 20%, End pos within 200bp,
         '''
         def conditions_tier1(s):
-            pos_thres = 0
+            pos_thres = 5
             ratio_thres = 0.8
             if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
@@ -71,7 +72,7 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         TIER 2: Start pos within 400bp, Length ratio within 20%,  End pos within 400bp
         '''
         def conditions_tier2(s):
-            pos_thres = 10
+            pos_thres = 15
             ratio_thres = 0.8
             if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
@@ -84,9 +85,9 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
         TIER 3: Start pos within 600bp, Length ratio within 30%
         '''
         def conditions_tier3(s):
-            pos_thres = 50
+            pos_thres = 0
             ratio_thres = 0.7
-            if (s['diff_start_pos'] <= pos_thres) and (s['diff_end_pos'] <= pos_thres) and (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
+            if (abs(s['length_ratio']) >= ratio_thres or pd.isna(s['length_ratio'])):
                 return True
             else:
                 return False
@@ -101,13 +102,22 @@ def calculate_results(comparison_df, false_negative_df, false_positive_df):
 
 def calculate_performance(comp_df, FN_df, FP_df):
     #TODO: check the logic of the output of this method
-    results = [["TIER", "TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score"]]
+    results = [["TIER", "TP", "FP", "FP_original", "FP_tier", "FN", "Recall", "Precision", "F1-score", "TP_DEL", "TP_INS", "TP_DUP", "TP_INV", "TP_BND"]]
+    # DEL, INS, DUP, INV, BND
+    types = []
     for tier in ['tier1', 'tier2', 'tier3']:
         if comp_df.empty:
             TP = 0
             FP_new = 0
+            types = [0,0,0,0,0]
         else:
             TP = comp_df.loc[comp_df[tier] == True].shape[0]
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                counted_items = Counter(comp_df.loc[comp_df[tier] == True]['type_truth'].tolist())
+                types = [counted_items['DEL'],counted_items['INS'],counted_items['DUP'],counted_items['INV'],counted_items['BND']]
+                for key in counted_items:
+                    if key not in ['DEL', 'INS', 'DUP', 'INV', 'BND']:
+                        sys.exit("[ERROR] Type not recognized!")
             FP_new = comp_df.loc[comp_df[tier] == False].shape[0]
         if FP_df.empty:
             FP_orig = 0
@@ -142,7 +152,8 @@ def calculate_performance(comp_df, FN_df, FP_df):
         #print("\tF1-score:\t" + str(round(F1,2)))
 
         #TODO: include match_type column
-        results.append([tier, TP, FP_orig + FP_new, FP_orig, FP_new, FN, round(recall,2), round(precision,2), round(F1,2)])
+
+        results.append([tier, TP, FP_orig + FP_new, FP_orig, FP_new, FN, round(recall,2), round(precision,2), round(F1,2)] + types)
     return(results)
 
 
@@ -193,12 +204,17 @@ def calculate_characteristics(truth, test, window):
 
     # Compare the types of the SVs
     #print(test['type'] + "\t" + truth['type'])
+    type_truth = truth['type']
+    type_test = test['type']
     if test['type'] == truth['type']:
         match_type = "YES"
+    # If the test file has a BND, we want to match to every type of truth
     elif test['type'] == "BND":
         match_type = "BND_test"
+    # If the truth file has a BND, we want to match to every type of test
     elif truth['type'] == "BND":
         match_type = "BND_truth"
+    # We want to match a DUP to a INS as well as the other way around (similar definitions)
     elif truth['type'] == "DUP" and test['type'] == "INS":
         match_type = "similar"
     elif truth['type'] == "INS" and test['type'] == "DUP":
@@ -235,7 +251,7 @@ def calculate_characteristics(truth, test, window):
     # Debugging
     #print([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, dup_truth])
 
-    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, match_type, bin0_200, bin200_1000, bin1000, dup_truth])
+    return([same_chrom_start, same_chrom_end, var_in_truth_within_window, diff_start_pos, diff_end_pos, diff_length, length_truth, norm_start_pos, norm_end_pos, length_ratio, type_truth, type_test, match_type, bin0_200, bin200_1000, bin1000, dup_truth])
 
 def main():
     parser = argparse.ArgumentParser()
@@ -251,7 +267,7 @@ def main():
     truth['times_checked'] = 0
     sv_comp_list = []
     sv_fp_list = []
-    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'match_type', 'bin0_200', 'bin200_1000', 'bin1000', 'dup_truth', 'index_test', 'index_truth']   #'index_test', 'index_truth'
+    columns_sv_comp_list = ['same_chrom_start', 'same_chrom_end', 'var_in_truth_within_window', 'diff_start_pos', 'diff_end_pos', 'diff_length', 'length_truth', 'norm_start_pos', 'norm_end_pos', 'length_ratio', 'type_truth', 'type_test', 'match_type', 'bin0_200', 'bin200_1000', 'bin1000', 'dup_truth', 'index_test', 'index_truth']   #'index_test', 'index_truth'
     window = 1000
     # For each row in the test file:
     for index, row in node.iterrows():
@@ -306,8 +322,8 @@ def main():
     #
     test_comp_vars = pd.concat([node, sv_fp_df]).drop_duplicates(keep=False)
     sv_fn_df = truth.loc[truth['times_checked'] == 0]
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-        print(sv_comp_df)
+    #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    #    print(sv_comp_df)
     #print(sv_comp_df.shape)
     #print(sv_fp_df)
     #print(sv_fp_df.shape)
@@ -373,7 +389,7 @@ def main():
     sv_comp_df_bin0 = sv_comp_df.loc[pd.isna(sv_comp_df['length_truth'])]
     sv_fn_df_bin0 = sv_fn_df.loc[pd.isna(sv_fn_df['length'])]
     sv_fp_df_bin0 = sv_fp_df.loc[pd.isna(sv_fp_df['length'])]
-    results["Bin " + str(lower_thres) + "-" + str(upper_thres) + " bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
+    results["Bin NaN bp"] = calculate_results(sv_comp_df_bin0, sv_fn_df_bin0, sv_fp_df_bin0)
 
     if args.metrics:
         #Save to file

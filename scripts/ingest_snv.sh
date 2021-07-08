@@ -2,7 +2,7 @@
 set -e
 #EUCANCAN SNV & INDEL vcf handling
 KEEP=false
-PASS=false
+PASS=true
 CPU=1
 while [ $# -gt 0 ] ; do
   case $1 in
@@ -16,7 +16,9 @@ while [ $# -gt 0 ] ; do
       -d | --outdir) OUTPUT_DIR="$2";;
       -o | --outname) OUT_NAME="$2";;
       -n | --sname) SAMPLE_NAME="$2";;
-      -p | --pass) PASS=true;;
+      -a | --truth_sv_sname) SV_SAMPLE_NAME="$2";;
+      -b | --truth_snv_sname) SNV_SAMPLE_NAME="$2";;
+      -p | --pass) PASS=false;;
       -c | --cpu) CPU="$2";;
       -k | --keep) KEEP=true;;
       -h | --help)  echo "Usage:"
@@ -30,6 +32,8 @@ while [ $# -gt 0 ] ; do
           echo "                   -d, --outdir /OUTPUT_DIR/PATH"
           echo "                   -o, --outname output file name"
           echo "                   -n, --sname vcf sample name"
+          echo "                   -a, --truth_sv_sname sample name for truth sv if different"
+          echo "                   -b, --truth_snv_sname sample name for truth snv if different"
           echo "                   -p, --pass keep only the pass variants"
           echo "                   -c, --cpu number of threads"
           echo "                   -k, --keep (to keep intermediates files)"
@@ -51,6 +55,8 @@ echo "Reference fasta file:" $FASTA
 echo "output path:" $OUTPUT_DIR
 echo "output file Name:" $OUT_NAME
 echo "vcf sample name:" $SAMPLE_NAME
+echo "truth snv sample name:" $SNV_SAMPLE_NAME
+echo "truth sv sample name:" $SV_SAMPLE_NAME
 echo "keep only pass variant ?" $PASS
 echo "keep intermediate files ?:" $KEEP
 echo "Number of threads:" $CPU
@@ -77,12 +83,12 @@ OUTPUT_DIR=$OUTPUT_DIR/$OUT_NAME
 # Load conda env:
 #conda env create -n eucancan -f golden-datasets/scripts/environment_snv.yml
 
-#source activate eucancan
+source activate eucancan
 
 # If SNV and INDEL in two files
 
 if [[ ! -z "$snv" && ! -z "$indel" ]]; then
-    echo "snv and indel not empty"
+    echo "[INFO] snv and indel not empty"
     if [[ $snv == *.vcf ]]; then
         bgzip -@ $CPU -c $snv > $snv".gz"
         snv=$snv".gz"
@@ -123,9 +129,10 @@ fi
 
 echo -e "[Running Information]: checking if vcf is multisample\n"
 
+# todo: check if the truth file is multisample or not!
 if [[ `bcftools query -l $snvindel |wc -l` -gt 1  && -z "$SAMPLE_NAME" ]]; then
-    echo $snvindel "is a multisample"
-    echo "sample name must be specified in -n parameter"
+    echo "[ERROR]" $snvindel "is a multisample"
+    echo "[ERROR] sample name must be specified in -n parameter"
     exit
 elif [[ `bcftools query -l $snvindel |wc -l` -gt 1  && ! -z "$SAMPLE_NAME" ]]; then
     echo $SAMPLE_NAME
@@ -191,14 +198,39 @@ pre.py $truth $OUTPUT_DIR/truth_temp.sort.prep.norm.vcf.gz -L --decompose --soma
 snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.vcf.gz"
 truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.vcf.gz"
 
-# Running ingestion script:
+# Running SNV ingestion script:
 echo -e "[Running Information]: Running ingestion_snv.py script \n"
+# Define directory of git repo with scripts
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"snv_indel.pass.sort.prep.norm" $snvindel
 
 python $DIR/ingest_snv.py -samplename "SAMPLE" -o $OUTPUT_DIR/"truth_temp.sort.prep.norm" $truth
 
+# Check if we can correctly ingest the SV Truth file
+# No separate sample name for SV file given: this means that it is single sample OR we should reuse samplename OR user should have provided -a argument.
+if [[ `bcftools query -l $sv | wc -l` -gt 1  && -z "$SV_SAMPLE_NAME" ]]; then
+  echo "[INFO]" $snvindel "is a multisample"
+  echo "[INFO] We will try to use the samplename given by the -n toggle. If this does not work, please provide the correct samplename for the SV file by using the -a toggle."
+  SV_SAMPLE_NAME=$SAMPLE_NAME
+fi
+
+# Running SV ingestion script:
+# todo: use PASS toggle in this script as well
+conda activate eucancan_sv
+echo -e "[Running Information]: Running SV ingest.py script \n"
+sv_dataframe=$OUTPUT_DIR/"sv_dataframe.csv"
+truth_sv_dataframe=$OUTPUT_DIR/"truth_sv_dataframe.csv"
+
+python $DIR/ingest.py $sv -samplename $SAMPLE_NAME -outputfile $sv_dataframe
+
+if [[ -z "$SV_SAMPLE_NAME" ]]; then
+  python $DIR/ingest.py $truth_sv -outputfile $truth_sv_dataframe
+else
+  python $DIR/ingest.py $truth_sv -samplename $SV_SAMPLE_NAME -outputfile $truth_sv_dataframe
+fi
+
+conda deactivate
 snvindel=$OUTPUT_DIR/"snv_indel.pass.sort.prep.norm.filtered.vcf"
 truth=$OUTPUT_DIR/"truth_temp.sort.prep.norm.filtered.vcf"
 
@@ -209,9 +241,14 @@ som.py $truth $snvindel -o $OUTPUT_DIR/$OUT_NAME --verbose -N
 
 echo -e "[Running Information]: script ended successfully\n"
 
-# Running SV ingestion script:
+# Running SV benchmark:
+conda activate eucancan_sv
+echo -e "[Running Information]: Running compare_node_to_truth.py script\n"
+metrics=$OUTPUT_DIR/"SV_benchmark_results.csv"
 
-#echo -e "[Running Information]: Running ingestion SV script\n"
+python $DIR/compare_node_to_truth.py $sv_dataframe $truth_sv_dataframe -metrics $metrics
+
+conda deactivate
 
 # Cleaning
 echo -e "[Running Information]: Cleaning files\n"
